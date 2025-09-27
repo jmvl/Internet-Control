@@ -1,0 +1,37 @@
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code specific
+.claude/
+
+# MCP backup files
+.mcp.json.backup
+
+# Temporary files
+*.tmp
+*.log
+
+# Sensitive data
+cookies.txt
+config.json
+
+# Supabase directory (has its own git repo)
+supabase/

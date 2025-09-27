@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  radicale:
+    image: tomsquest/docker-radicale
+    container_name: radicale
+    ports:
+      - "192.168.1.30:5232:5232"  # Bind to specific IP for security
+    volumes:
+      - ./radicale/data:/data
+      - ./radicale/config:/config:ro
+    environment:
+      - RADICALE_CONFIG=/config/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5232/.web/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
