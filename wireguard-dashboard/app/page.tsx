@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Activity, Download, Upload, Wifi } from 'lucide-react';
 
@@ -91,11 +92,14 @@ export default function Dashboard() {
       <div className="container mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Wifi className="w-8 h-8 text-blue-600" />
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
-              WireGuard Bandwidth Monitor
-            </h1>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
+              <Wifi className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
+                WireGuard Bandwidth Monitor
+              </h1>
+            </div>
+            <ThemeToggle />
           </div>
           <p className="text-slate-600 dark:text-slate-400">
             Real-time bandwidth tracking for wg.accelior.com
