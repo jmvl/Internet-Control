@@ -475,16 +475,19 @@ RAID Mirror Structure:
 | 133 | opnsense | running | 192.168.1.3 (vmbr0)<br>WAN (vmbr1) | Dual NIC | 6 cores, 3.6GB RAM | Firewall/Gateway |
 
 #### LXC Containers:
-| VMID | Hostname | Status | IP Address | Resources | Storage | Purpose |
-|------|----------|--------|------------|-----------|---------|---------|
-| 100 | ConfluenceDocker20220712 | running | 192.168.1.21 | 10 cores, 9.9GB RAM | 60GB | Confluence Wiki |
-| 111 | docker-debian | running | 192.168.1.20 | 12 cores, 10GB RAM | 60GB | Docker Host |
-| 102 | jira.accelior.com | running | 192.168.1.22 | 6 cores, 6GB RAM | 70GB | JIRA Issue Tracking |
-| 103 | files.accelior.com | running | 192.168.1.25 | 6 cores, 2GB RAM | 310GB | File Server |
-| 109 | wanderwish | running | 192.168.1.29 | 12 cores, 4GB RAM | 20GB | Web Application |
-| 110 | ansible-mgmt | stopped | 192.168.1.25 | 1 core, 1GB RAM | 15GB | Automation Management |
-| 130 | mail.vega-messenger.com | running | 192.168.1.30 | 8 cores, 8GB RAM | 160GB | Mail Server |
-| **501** | **gitlab.accelior.com** | **running** | **192.168.1.33** | **8 cores, 6GB RAM** | **95GB** | **GitLab CE Server** |
+| VMID | Hostname | Status | IP Address | Resources | Storage | Purpose | Notes |
+|------|----------|--------|------------|-----------|---------|---------|-------|
+| 100 | ConfluenceDocker20220712 | running | 192.168.1.21/24 | 10 cores, 9.9GB RAM | 60GB | Confluence Wiki | |
+| 101 | docker-debian | stopped | 192.168.1.20/24 | - | - | Docker Host (old) | ⚠️ IP conflict with PCT 111 |
+| 102 | jira.accelior.com | running | 192.168.1.22/24 | 6 cores, 6GB RAM | 70GB | JIRA Issue Tracking | |
+| 103 | files.accelior.com | running | 192.168.1.25/24 | 6 cores, 2GB RAM | 310GB | Seafile File Server | ⚠️ Previously conflicted with PCT 110 (resolved) |
+| 109 | wanderwish | running | 192.168.1.29/24 | 12 cores, 4GB RAM | 20GB | Web Application | |
+| 110 | ansible-mgmt | running | 192.168.1.26/24 | 1 core, 1GB RAM | 15GB | Ansible Automation | ⚠️ IP changed from 192.168.1.25 to avoid conflict |
+| 111 | docker-debian | running | 192.168.1.20/24 | 12 cores, 10GB RAM | 60GB | Docker Host (active) | ⚠️ IP conflict with PCT 101 (stopped) |
+| 130 | mail.vega-messenger.com | running | 192.168.1.30/24 | 8 cores, 8GB RAM | 160GB | Mail Server | |
+| 501 | gitlab.accelior.com | stopped | 192.168.1.35/24 | 8 cores, 6GB RAM | 95GB | GitLab CE Server | |
+| 502 | CT502 | running | 192.168.1.33/24 | - | - | General Purpose | |
+| 505 | gitlab-bulk | stopped | DHCP | - | - | GitLab Bulk Operations | Uses DHCP |
 
 #### Network Bridges:
 - **vmbr0**: LAN Bridge (connected to enp1s0 - 2.5GbE RTL8125)

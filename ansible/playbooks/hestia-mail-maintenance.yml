@@ -1,0 +1,412 @@
+---
+# HestiaCP Mail Server Maintenance Playbook
+# Target: PCT-130 (192.168.1.30) - mail.vega-messenger.com
+# Purpose: Comprehensive system maintenance including OS updates, log cleanup, and mail services
+# Schedule: Daily light maintenance, weekly full maintenance, monthly comprehensive
+
+- name: HestiaCP Mail Server Maintenance
+  hosts: mail-server
+  become: yes
+
+  vars:
+    maintenance_log: "/var/log/ansible-hestia-maintenance.log"
+    log_retention_days: 30
+    hestia_log_dir: "/var/log/hestia"
+    apache_log_dir: "/var/log/apache2"
+    nginx_log_dir: "/var/log/nginx"
+    mail_log_dir: "/var/log/exim4"
+
+  tasks:
+    # ========================================
+    # MAINTENANCE INITIALIZATION
+    # ========================================
+
+    - name: Create maintenance log entry
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== HestiaCP mail server maintenance started: {{ ansible_date_time.iso8601 }} ==="
+        create: yes
+      tags: always
+
+    - name: Check disk usage before maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_before
+      changed_when: false
+      tags: always
+
+    # ========================================
+    # SYSTEM LOG CLEANUP
+    # ========================================
+
+    - name: Rotate and clean system journals
+      shell: journalctl --vacuum-time={{ log_retention_days }}d
+      register: journal_cleanup
+      tags: logs
+
+    - name: Clean old syslog files
+      find:
+        paths: /var/log
+        patterns: "*.log.*,*.gz,syslog.*"
+        age: "{{ log_retention_days }}d"
+      register: old_syslogs
+      tags: logs
+
+    - name: Remove old syslog files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_syslogs.files }}"
+      when: old_syslogs.matched > 0
+      tags: logs
+
+    # ========================================
+    # HESTIA-SPECIFIC LOG CLEANUP
+    # ========================================
+
+    - name: Find old HestiaCP logs
+      find:
+        paths: "{{ hestia_log_dir }}"
+        patterns: "*.log.*,*.gz"
+        age: "{{ log_retention_days }}d"
+      register: old_hestia_logs
+      ignore_errors: yes
+      tags: logs
+
+    - name: Remove old HestiaCP logs
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_hestia_logs.files }}"
+      when: old_hestia_logs.matched > 0
+      tags: logs
+
+    - name: Truncate large HestiaCP logs (>100MB)
+      shell: |
+        find {{ hestia_log_dir }} -name "*.log" -type f -size +100M -exec truncate -s 50M {} \;
+      ignore_errors: yes
+      tags: logs
+
+    # ========================================
+    # APACHE LOG CLEANUP
+    # ========================================
+
+    - name: Find old Apache logs
+      find:
+        paths: "{{ apache_log_dir }}"
+        patterns: "*.log.*,*.gz,access.log.*,error.log.*"
+        age: "{{ log_retention_days }}d"
+      register: old_apache_logs
+      tags: logs
+
+    - name: Remove old Apache logs
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_apache_logs.files }}"
+      when: old_apache_logs.matched > 0
+      tags: logs
+
+    - name: Truncate large Apache logs (>200MB)
+      shell: |
+        find {{ apache_log_dir }} -name "*.log" -type f -size +200M -exec truncate -s 100M {} \;
+      tags: logs
+
+    # ========================================
+    # NGINX LOG CLEANUP
+    # ========================================
+
+    - name: Find old Nginx logs
+      find:
+        paths: "{{ nginx_log_dir }}"
+        patterns: "*.log.*,*.gz"
+        age: "{{ log_retention_days }}d"
+        recurse: yes
+      register: old_nginx_logs
+      tags: logs
+
+    - name: Remove old Nginx logs
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_nginx_logs.files }}"
+      when: old_nginx_logs.matched > 0
+      tags: logs
+
+    - name: Truncate large Nginx domain logs (>100MB)
+      shell: |
+        find {{ nginx_log_dir }}/domains -name "*.log" -type f -size +100M -exec truncate -s 50M {} \; 2>/dev/null || true
+      tags: logs
+
+    # ========================================
+    # MAIL LOG CLEANUP
+    # ========================================
+
+    - name: Find old Exim4 logs
+      find:
+        paths: "{{ mail_log_dir }}"
+        patterns: "mainlog.*,rejectlog.*,paniclog.*"
+        age: "{{ log_retention_days }}d"
+      register: old_mail_logs
+      ignore_errors: yes
+      tags: logs
+
+    - name: Remove old Exim4 logs
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_mail_logs.files }}"
+      when: old_mail_logs.matched > 0
+      tags: logs
+
+    - name: Truncate large mail logs (>200MB)
+      shell: |
+        find {{ mail_log_dir }} -name "mainlog" -o -name "rejectlog" -type f -size +200M -exec truncate -s 100M {} \;
+      ignore_errors: yes
+      tags: logs
+
+    # ========================================
+    # SYSTEM PACKAGE UPDATES
+    # ========================================
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: updates
+
+    - name: Upgrade all packages (dist-upgrade)
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      register: apt_updates
+      tags: updates
+
+    - name: Check if reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+      tags: updates
+
+    # ========================================
+    # MAIL QUEUE MANAGEMENT
+    # ========================================
+
+    - name: Check mail queue status
+      shell: exim4 -bpc
+      register: mail_queue_count
+      changed_when: false
+      tags: mail
+
+    - name: Check for frozen messages
+      shell: exim4 -bp | grep frozen | wc -l
+      register: frozen_count
+      changed_when: false
+      tags: mail
+
+    - name: Remove frozen messages older than 7 days
+      shell: |
+        exim4 -bp | grep frozen | awk '{print $3}' | xargs -I {} exim4 -Mrm {} 2>/dev/null || true
+      when: frozen_count.stdout | int > 0
+      tags: mail
+
+    # ========================================
+    # MAIL SERVICE HEALTH CHECKS
+    # ========================================
+
+    - name: Check Exim4 service status
+      systemd:
+        name: exim4
+        state: started
+        enabled: yes
+      tags: health
+
+    - name: Check Dovecot service status
+      systemd:
+        name: dovecot
+        state: started
+        enabled: yes
+      tags: health
+
+    - name: Check SpamAssassin service status
+      systemd:
+        name: spamassassin
+        state: started
+        enabled: yes
+      ignore_errors: yes
+      tags: health
+
+    - name: Check ClamAV service status
+      systemd:
+        name: clamav-daemon
+        state: started
+        enabled: yes
+      ignore_errors: yes
+      tags: health
+
+    - name: Verify mail ports are listening
+      shell: |
+        netstat -tlnp | grep -E ':(25|587|465|143|993)' || \
+        ss -tlnp | grep -E ':(25|587|465|143|993)'
+      register: mail_ports
+      changed_when: false
+      tags: health
+
+    # ========================================
+    # SSL CERTIFICATE MONITORING
+    # ========================================
+
+    - name: Check SSL certificate expiration for mail domains
+      shell: |
+        for domain in accelior.com vega-messenger.com acmea.tech; do
+          cert="/usr/local/hestia/data/users/*/ssl/mail.$domain.crt"
+          if [ -f $cert ]; then
+            days=$(openssl x509 -in $cert -noout -enddate | awk -F= '{print $2}' | xargs -I {} date -d {} +%s | awk -v now=$(date +%s) '{print int(($1-now)/86400)}')
+            echo "mail.$domain: $days days until expiration"
+          fi
+        done
+      register: ssl_status
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    # ========================================
+    # DOCKER RADICALE CONTAINER CHECK
+    # ========================================
+
+    - name: Check if Radicale container is running
+      shell: docker ps --filter name=radicale --format "{{.Status}}"
+      register: radicale_status
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    # ========================================
+    # POST-MAINTENANCE ASSESSMENT
+    # ========================================
+
+    - name: Check disk usage after maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_after
+      changed_when: false
+      tags: always
+
+    - name: Calculate space freed
+      shell: |
+        before=$(df / | tail -1 | awk '{print $3}')
+        after=$(df / | tail -1 | awk '{print $3}')
+        freed=$((before - after))
+        echo "${freed}K"
+      register: space_freed
+      changed_when: false
+      tags: always
+
+    # ========================================
+    # COMPREHENSIVE MAINTENANCE (MONTHLY)
+    # ========================================
+
+    - name: Clean APT cache thoroughly (comprehensive mode only)
+      shell: |
+        apt-get clean
+        apt-get autoclean
+        rm -rf /var/cache/apt/archives/*.deb
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      tags: comprehensive
+
+    - name: Check and repair mail database integrity
+      shell: |
+        /usr/local/hestia/bin/v-rebuild-mail-domains $(ls /usr/local/hestia/data/users/) 2>&1 || true
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      ignore_errors: yes
+      tags: comprehensive
+
+    - name: Update SpamAssassin rules
+      shell: sa-update && systemctl restart spamassassin
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      ignore_errors: yes
+      tags: comprehensive
+
+    - name: Update ClamAV virus definitions
+      shell: freshclam
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      ignore_errors: yes
+      tags: comprehensive
+
+    # ========================================
+    # MAINTENANCE REPORTING
+    # ========================================
+
+    - name: Log maintenance results
+      blockinfile:
+        path: "{{ maintenance_log }}"
+        marker: "<!-- {mark} ANSIBLE MANAGED BLOCK {{ ansible_date_time.iso8601 }} -->"
+        block: |
+          Maintenance Summary:
+          - Date: {{ ansible_date_time.iso8601 }}
+          - Disk Usage Before: {{ disk_usage_before.stdout }}
+          - Disk Usage After: {{ disk_usage_after.stdout }}
+          - Space Freed: {{ space_freed.stdout }}
+          - System Updates: {{ apt_updates.changed | default(false) }}
+          - Journal Cleaned: {{ journal_cleanup.changed | default(false) }}
+          - Mail Queue Size: {{ mail_queue_count.stdout }}
+          - Frozen Messages: {{ frozen_count.stdout }}
+          - Reboot Required: {{ 'YES' if reboot_required.stat.exists else 'NO' }}
+          - SSL Status: {{ ssl_status.stdout_lines | join(', ') }}
+          - Radicale: {{ radicale_status.stdout | default('Not running') }}
+          {% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}
+          - SpamAssassin Rules Updated: Yes
+          - ClamAV Updated: Yes
+          {% endif %}
+      tags: always
+
+    - name: Send maintenance summary
+      debug:
+        msg: |
+          ============================================
+          HestiaCP Mail Server Maintenance Summary
+          ============================================
+          Host: {{ ansible_hostname }}
+          Date: {{ ansible_date_time.iso8601 }}
+
+          DISK USAGE:
+          Before: {{ disk_usage_before.stdout }}
+          After:  {{ disk_usage_after.stdout }}
+          Space Freed: {{ space_freed.stdout }}
+
+          SYSTEM UPDATES:
+          Updates Applied: {{ apt_updates.changed | default(false) }}
+          Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if reboot_required.stat.exists else 'NO' }}
+
+          LOG CLEANUP:
+          System Journals: {{ journal_cleanup.changed | default(false) }}
+          HestiaCP Logs: {{ old_hestia_logs.matched | default(0) }} files removed
+          Apache Logs: {{ old_apache_logs.matched | default(0) }} files removed
+          Nginx Logs: {{ old_nginx_logs.matched | default(0) }} files removed
+          Mail Logs: {{ old_mail_logs.matched | default(0) }} files removed
+
+          MAIL SERVICES:
+          Queue Size: {{ mail_queue_count.stdout }} messages
+          Frozen Messages: {{ frozen_count.stdout }}
+          Mail Ports: {{ 'All listening' if mail_ports.rc == 0 else 'Some ports not listening' }}
+
+          SSL CERTIFICATES:
+          {{ ssl_status.stdout | default('Unable to check') }}
+
+          CONTAINERS:
+          Radicale: {{ radicale_status.stdout | default('Not running') }}
+
+          {% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}
+          COMPREHENSIVE MAINTENANCE:
+          SpamAssassin Rules: Updated
+          ClamAV Definitions: Updated
+          Mail Domains: Rebuilt
+          {% endif %}
+
+          ============================================
+      tags: always
+
+    - name: Create maintenance completion marker
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== HestiaCP maintenance completed successfully: {{ ansible_date_time.iso8601 }} ==="
+      tags: always

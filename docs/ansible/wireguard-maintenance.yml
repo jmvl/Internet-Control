@@ -1,0 +1,317 @@
+---
+# WireGuard VPN Server Maintenance Playbook
+# Target: wg.accelior.com (Hetzner Cloud - 135.181.154.169)
+# Purpose: Automated maintenance, log rotation, and package updates for WireGuard Easy
+# Schedule: Daily light maintenance, weekly full maintenance, monthly comprehensive
+
+- name: WireGuard Server Maintenance
+  hosts: wireguard-server
+  become: yes
+
+  vars:
+    maintenance_log: "/var/log/ansible-wireguard-maintenance.log"
+    backup_dir: "/root/wireguard-backups"
+    wg_data_dir: "/opt/wg-easy"
+    container_name: "wg-easy"
+    log_retention_days: 30
+    backup_retention_days: 90
+
+  tasks:
+    # ========================================
+    # MAINTENANCE INITIALIZATION
+    # ========================================
+
+    - name: Create maintenance log entry
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== WireGuard maintenance started: {{ ansible_date_time.iso8601 }} ==="
+        create: yes
+      tags: always
+
+    - name: Check disk usage before maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_before
+      changed_when: false
+      tags: always
+
+    # ========================================
+    # DOCKER LOG ROTATION & CLEANUP
+    # ========================================
+
+    - name: Get WireGuard Easy container log size
+      stat:
+        path: "/var/lib/docker/containers/*/{{ container_name }}*-json.log"
+      register: container_log_stat
+      ignore_errors: yes
+      tags: logs
+
+    - name: Truncate WireGuard Easy container logs
+      shell: |
+        truncate -s 0 /var/lib/docker/containers/*/*-json.log
+      when: disk_usage_before.stdout is defined
+      tags: logs
+
+    - name: Rotate WireGuard Easy application logs (if any)
+      shell: |
+        docker exec {{ container_name }} sh -c 'find /etc/wireguard -name "*.log" -type f -size +100M -exec truncate -s 0 {} \;' || true
+      ignore_errors: yes
+      tags: logs
+
+    # ========================================
+    # SYSTEM PACKAGE UPDATES
+    # ========================================
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: updates
+
+    - name: Install security updates only
+      apt:
+        upgrade: safe
+        autoremove: yes
+        autoclean: yes
+      register: apt_updates
+      tags: updates
+
+    - name: Check if reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+      tags: updates
+
+    # ========================================
+    # DOCKER IMAGE UPDATES
+    # ========================================
+
+    - name: Pull latest WireGuard Easy Docker image
+      docker_image:
+        name: ghcr.io/wg-easy/wg-easy
+        tag: latest
+        source: pull
+        force_source: yes
+      register: docker_image_pull
+      tags: docker
+
+    - name: Check if container needs restart (image updated)
+      set_fact:
+        container_restart_needed: "{{ docker_image_pull.changed }}"
+      tags: docker
+
+    # ========================================
+    # WIREGUARD DATA BACKUP
+    # ========================================
+
+    - name: Create backup directory
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0700'
+      tags: backup
+
+    - name: Create timestamped backup of WireGuard Easy data
+      archive:
+        path: "{{ wg_data_dir }}"
+        dest: "{{ backup_dir }}/wg-easy-backup-{{ ansible_date_time.date }}.tar.gz"
+        format: gz
+      tags: backup
+
+    - name: Remove old backups (older than retention period)
+      find:
+        paths: "{{ backup_dir }}"
+        patterns: "wg-easy-backup-*.tar.gz"
+        age: "{{ backup_retention_days }}d"
+      register: old_backups
+      tags: backup
+
+    - name: Delete old backups
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_backups.files }}"
+      when: old_backups.matched > 0
+      tags: backup
+
+    # ========================================
+    # WIREGUARD HEALTH CHECKS
+    # ========================================
+
+    - name: Check WireGuard Easy container status
+      docker_container_info:
+        name: "{{ container_name }}"
+      register: wg_container_info
+      tags: health
+
+    - name: Verify WireGuard interface inside container
+      shell: docker exec {{ container_name }} wg show wg0
+      register: wg_interface_status
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    - name: Get active peer count
+      shell: docker exec {{ container_name }} wg show wg0 | grep -c "peer:" || echo 0
+      register: active_peers
+      changed_when: false
+      tags: health
+
+    - name: Check WireGuard UDP port is listening
+      shell: netstat -ulnp | grep ':51820' || ss -ulnp | grep ':51820'
+      register: wg_port_status
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    - name: Check Web UI port is listening
+      shell: netstat -tlnp | grep ':51821' || ss -tlnp | grep ':51821'
+      register: webui_port_status
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    # ========================================
+    # FIREWALL VERIFICATION
+    # ========================================
+
+    - name: Verify firewall rules for WireGuard
+      shell: ufw status | grep -E '51820|51821'
+      register: firewall_status
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    # ========================================
+    # CONTAINER RESTART (IF NEEDED)
+    # ========================================
+
+    - name: Restart WireGuard Easy container if image updated
+      docker_container:
+        name: "{{ container_name }}"
+        state: started
+        restart: yes
+      when: container_restart_needed | default(false)
+      tags: docker
+
+    - name: Wait for WireGuard Easy to be healthy after restart
+      shell: |
+        for i in {1..30}; do
+          docker exec {{ container_name }} wg show wg0 &>/dev/null && exit 0
+          sleep 2
+        done
+        exit 1
+      when: container_restart_needed | default(false)
+      tags: docker
+
+    # ========================================
+    # POST-MAINTENANCE ASSESSMENT
+    # ========================================
+
+    - name: Check disk usage after maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_after
+      changed_when: false
+      tags: always
+
+    - name: Get WireGuard Easy container resource usage
+      shell: docker stats {{ container_name }} --no-stream --format "table {{.CPUPerc}}\t{{.MemUsage}}\t{{.NetIO}}"
+      register: container_stats
+      changed_when: false
+      tags: health
+
+    # ========================================
+    # COMPREHENSIVE MAINTENANCE (MONTHLY)
+    # ========================================
+
+    - name: Cleanup Docker system (comprehensive mode only)
+      docker_prune:
+        containers: yes
+        images: yes
+        networks: yes
+        volumes: no  # Don't remove volumes (preserve data)
+        builder_cache: yes
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      register: docker_cleanup
+      tags: comprehensive
+
+    - name: Verify WireGuard Easy data integrity
+      shell: |
+        docker exec {{ container_name }} test -f /etc/wireguard/wg0.conf && \
+        docker exec {{ container_name }} wg show wg0 | grep -q "public key" && \
+        echo "OK" || echo "FAILED"
+      register: data_integrity
+      changed_when: false
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      tags: comprehensive
+
+    # ========================================
+    # MAINTENANCE REPORTING
+    # ========================================
+
+    - name: Log maintenance results
+      blockinfile:
+        path: "{{ maintenance_log }}"
+        marker: "<!-- {mark} ANSIBLE MANAGED BLOCK {{ ansible_date_time.iso8601 }} -->"
+        block: |
+          Maintenance Summary:
+          - Date: {{ ansible_date_time.iso8601 }}
+          - Disk Usage Before: {{ disk_usage_before.stdout }}
+          - Disk Usage After: {{ disk_usage_after.stdout }}
+          - System Updates: {{ apt_updates.changed | default(false) }}
+          - Docker Image Updated: {{ docker_image_pull.changed | default(false) }}
+          - Container Restarted: {{ container_restart_needed | default(false) }}
+          - Active Peers: {{ active_peers.stdout | default('N/A') }}
+          - WireGuard Port Status: {{ 'OK' if wg_port_status.rc == 0 else 'FAILED' }}
+          - Web UI Port Status: {{ 'OK' if webui_port_status.rc == 0 else 'FAILED' }}
+          - Reboot Required: {{ 'YES' if reboot_required.stat.exists else 'NO' }}
+          {% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}
+          - Docker Cleanup: {{ docker_cleanup.changed | default('N/A') }}
+          - Data Integrity: {{ data_integrity.stdout | default('N/A') }}
+          {% endif %}
+      tags: always
+
+    - name: Send maintenance summary
+      debug:
+        msg: |
+          ============================================
+          WireGuard Server Maintenance Summary
+          ============================================
+          Host: {{ ansible_hostname }}
+          Date: {{ ansible_date_time.iso8601 }}
+
+          DISK USAGE:
+          Before: {{ disk_usage_before.stdout }}
+          After:  {{ disk_usage_after.stdout }}
+
+          SYSTEM UPDATES:
+          Updates Applied: {{ apt_updates.changed | default(false) }}
+          Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if reboot_required.stat.exists else 'NO' }}
+
+          DOCKER:
+          Image Updated: {{ docker_image_pull.changed | default(false) }}
+          Container Restarted: {{ container_restart_needed | default(false) }}
+          Container Status: {{ wg_container_info.container.State.Status | default('UNKNOWN') }}
+
+          WIREGUARD STATUS:
+          Active Peers: {{ active_peers.stdout | default('N/A') }}
+          VPN Port (51820/udp): {{ 'LISTENING' if wg_port_status.rc == 0 else 'NOT LISTENING' }}
+          Web UI Port (51821/tcp): {{ 'LISTENING' if webui_port_status.rc == 0 else 'NOT LISTENING' }}
+          Interface Status: {{ 'OK' if wg_interface_status.rc == 0 else 'ERROR' }}
+
+          CONTAINER RESOURCES:
+          {{ container_stats.stdout }}
+
+          {% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}
+          COMPREHENSIVE MAINTENANCE:
+          Docker System Prune: {{ 'Completed' if docker_cleanup.changed else 'Skipped' }}
+          Data Integrity Check: {{ data_integrity.stdout | default('N/A') }}
+          {% endif %}
+
+          ============================================
+      tags: always
+
+    - name: Create maintenance completion marker
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== WireGuard maintenance completed successfully: {{ ansible_date_time.iso8601 }} ==="
+      tags: always

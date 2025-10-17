@@ -30,6 +30,53 @@ ssh root@pve2 'pct exec 103 -- docker logs seafile-mysql --tail 20'
 
 ## Common Issues and Solutions
 
+### Issue 0: IP Address Conflict (CRITICAL)
+
+**Symptoms**:
+- 502 Bad Gateway from Nginx Proxy Manager
+- SSH works but HTTP/Docker ports fail from specific hosts
+- Some hosts can connect while others cannot
+- Issue persists across reboots and port changes
+
+**Root Cause**: Multiple Proxmox containers assigned the same IP address
+
+**Diagnosis**:
+```bash
+# Check all PCT container IPs for conflicts
+ssh root@pve2 'for i in $(pct list | awk "NR>1 {print \$1}"); do echo -n "PCT $i: "; pct config $i | grep "net0" | grep -oP "ip=\K[^,]+" || echo "No IP"; done | sort -t: -k2'
+
+# Test connectivity to suspect IP from multiple hosts
+# If SSH works but Docker ports fail, suspect IP conflict
+ssh root@<test-host> 'timeout 2 bash -c "</dev/tcp/192.168.1.25/22" && echo "SSH works"'
+ssh root@<test-host> 'timeout 2 bash -c "</dev/tcp/192.168.1.25/8092" && echo "HTTP works"'
+```
+
+**Solution**:
+```bash
+# Identify conflicting containers
+ssh root@pve2 'pct list'
+ssh root@pve2 'for i in $(pct list | awk "NR>1 {print \$1}"); do pct config $i | grep -H "ip=" /dev/stdin; done'
+
+# Change IP address of one container (example: PCT 110)
+ssh root@pve2 'pct set 110 -net0 name=eth0,bridge=vmbr0,gw=192.168.1.3,hwaddr=XX:XX:XX:XX:XX:XX,ip=192.168.1.26/24,type=veth'
+
+# Reboot affected container
+ssh root@pve2 'pct reboot 110'
+
+# Verify resolution
+ping 192.168.1.25  # Should reach correct container
+curl http://192.168.1.25:8092  # Should work from all hosts
+```
+
+**Prevention**:
+- Document all IP addresses in `/docs/infrastructure.md`
+- Check for conflicts before assigning new IPs
+- Use consistent IP allocation scheme
+
+**Reference**: See [seafile-ip-conflict-resolution-2025-10-16.md](seafile-ip-conflict-resolution-2025-10-16.md)
+
+---
+
 ### Issue 1: "502 Bad Gateway" Error
 
 **Symptoms**:

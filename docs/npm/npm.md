@@ -7,7 +7,7 @@ Nginx Proxy Manager provides a web-based interface for managing Nginx reverse pr
 - **Host**: OpenMediaVault NAS (192.168.1.9)
 - **Container**: `nginx-proxy-manager-nginx-proxy-manager-1`
 - **Image**: `jc21/nginx-proxy-manager:latest`
-- **Web Interface**: http://192.168.1.9:81 (Admin Panel)
+- **Web Interface**: http://192.168.1.9:81 (Admin Panel) - https://nginx.home.accelior.com/
 - **HTTP Proxy**: Port 80 (HTTP traffic)
 - **HTTPS Proxy**: Port 443 (HTTPS traffic)
 - **Status**: Up 3 weeks

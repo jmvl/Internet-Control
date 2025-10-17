@@ -35,3 +35,5 @@ config.json
 
 # Supabase directory (has its own git repo)
 supabase/
+# Netdata credentials
+docs/netdata/.credentials

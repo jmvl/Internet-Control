@@ -11,11 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains a comprehensive enterprise-grade home network infrastructure with multi-layer traffic control, including:
 
-- **OpenWrt Multi-WiFi Throttling**: Production-ready shell scripts for selective bandwidth control across multiple WiFi interfaces
 - **Three-Tier Network Architecture**: Hardware-isolated traffic control through OpenWrt → OPNsense → Pi-hole
 - **Infrastructure-as-Code**: Complete Proxmox virtualization setup with automated backup/recovery
 - **Container Platform**: Full Supabase stack + n8n automation + media services
-- **Future Development**: Planned LuCI web module for GUI-based WiFi throttling management
 
 ## Documentation Architecture
 All infrastructure services are documented in organized subdirectories:
@@ -23,27 +21,18 @@ All infrastructure services are documented in organized subdirectories:
 - `/docs/OPNsense/`, `/docs/Supabase/`, `/docs/docker/` etc. - Service-specific docs
 - **Discovery Protocol**: When encountering undocumented services, create comprehensive technical documentation in the appropriate `/docs/` subdirectory
 
+### Confluence Documentation Server
+**IMPORTANT - Atlassian MCP Configuration**:
+- **Confluence URL**: `https://confluence.accelior.com`
+- **Configuration Source**: MCP server configured via Claude Code's Atlassian MCP integration
+- **Spaces Available**: INFRA, and others
+- ⚠️ **CRITICAL**: Always use the exact URL `https://confluence.accelior.com` - DO NOT hallucinate or guess other URLs
+- When posting documentation to Confluence, use the `confluence-doc-expert` agent with proper space and page parameters
+- All technical documentation created in `/docs/` subdirectories should be mirrored to appropriate Confluence spaces for team access
+
 ## Key Commands
 
-### Multi-WiFi Throttling (OpenWrt)
-```bash
-# Initial setup (interactive configuration)
-./openwrt_multi_wifi_throttle.sh
-
-# Create backup hidden WiFi networks (emergency access)
-./openwrt_backup_wifi_setup.sh
-
-# Once installed on router, these commands are available:
-multi-wifi-throttle on     # Enable throttling with optional custom speeds
-multi-wifi-throttle off    # Restore normal speeds for all WiFi
-multi-wifi-throttle status # Show current configuration and status
-
-# Backup network management
-backup-wifi status         # Check hidden backup networks
-backup-wifi guide          # View connection instructions
-backup-wifi enable/disable  # Control backup networks
-```
-
+w
 ### Infrastructure Management
 ```bash
 # Proxmox backup and recovery
@@ -94,23 +83,6 @@ Internet → [OpenWrt] → [OPNsense] → [Pi-hole] → LAN Clients
    SQM Control   Traffic      Rate Limiting
                  Shaping
 ```
-
-### OpenWrt Multi-WiFi Throttling Architecture
-The core throttling system uses a **master-slave pattern** with centralized SQM control:
-
-**Script Architecture**:
-- **Master Scripts**: `/root/scripts/multi_wifi_throttle.sh` and `/root/scripts/multi_wifi_normal.sh`
-- **Interface Detection**: Dynamic discovery using `iw dev` and UCI wireless configuration
-- **SQM Backend**: Individual SQM instances per WiFi interface (e.g., `wifi_phy0ap0`, `wifi_phy1ap0`)
-- **Cron Integration**: Time-based scheduling with automated throttle/restore cycles
-- **Safety Features**: Backup hidden WiFi networks unaffected by throttling
-
-**Key Design Patterns**:
-1. **Interface Abstraction**: UCI configuration names mapped to physical interfaces
-2. **Atomic Operations**: Stop SQM → Update config → Restart SQM for consistent state
-3. **Logging Integration**: All operations logged via `logger` for system visibility
-4. **Idempotent Scripts**: Can be run multiple times safely without side effects
-
 ### Container Platform (192.168.1.20)
 **Supabase Full Stack**:
 - **PostgreSQL 15.8.1** with pgvecto-rs vector support
@@ -135,69 +107,17 @@ The core throttling system uses a **master-slave pattern** with centralized SQM 
 - **Media Management**: Calibre e-books, Nginx Proxy Manager, Syncthing sync
 - **Monitoring**: Uptime Kuma service monitoring, Portainer container management
 
-## Development Context & Patterns
-
-### Current Production State
-The WiFi throttling system is **production-ready** with the following mature components:
-- **Interactive Setup Wizard**: `openwrt_multi_wifi_throttle.sh` with guided configuration
-- **Backup WiFi Creation**: `openwrt_backup_wifi_setup.sh` for emergency access networks
-- **Multi-Interface Support**: Simultaneous control of multiple WiFi radios/interfaces
-- **SQM Integration**: Deep integration with OpenWrt's Smart Queue Management
-- **Automated Scheduling**: Cron-based time restrictions with logging
-- **Status Monitoring**: Comprehensive real-time status and control capabilities
-
-### Script Architecture Patterns
-**Configuration Management**:
-- UCI-based configuration persistence (`uci set/get/commit`)
-- Template-based script generation with placeholder replacement
-- Atomic configuration updates (stop → configure → start)
-
-**Error Handling & Safety**:
-- Root privilege validation before execution
-- Interface existence checking before configuration
-- Graceful fallback for missing UCI values
-- Comprehensive logging via `logger` command
-
-**State Management**:
-- SQM instance naming convention: `wifi_$(echo $iface | tr -d '-')`
-- Separate UCI sections per WiFi interface for independent control
-- Cron job management with backup and restoration of schedules
-
-### Future Development (LuCI Module)
-**PRD-Defined Roadmap** (`docs/prd.md`):
-- **LuCI Web Interface**: Browser-based GUI following OpenWrt MVC architecture
-- **Real-time Monitoring**: Live bandwidth graphs and status updates
-- **Advanced Scheduling**: Visual time picker with complex rule configuration
-- **Mobile-Responsive Design**: Touch-friendly controls for mobile management
-- **API Integration**: RESTful API for automation and third-party integration
-
-### Key Development Considerations
-
-**OpenWrt Platform Requirements**:
-- Target: OpenWrt 21.02+ with SQM support
-- Dependencies: `sqm-scripts`, `luci-app-sqm`, `ip-full`, `iw`
-- Testing: Always verify with `/etc/init.d/sqm status` and `uci show sqm`
-
-**Security & Safety**:
-- **Defensive Purpose**: Bandwidth throttling for parental controls and network management
-- **No Blocking**: Speed limitation, not access blocking (emergency access maintained)
-- **Backup Networks**: Hidden SSIDs unaffected by throttling for emergency access
-- **Input Validation**: All user inputs sanitized and validated
-
-**Infrastructure Integration**:
-- **Proxmox Backup**: 10-30 minute recovery times for configuration disasters
-- **Multi-Layer Control**: Coordination with OPNsense traffic shaping and Pi-hole DNS filtering
-- **Monitoring Integration**: Uptime Kuma monitoring, centralized logging via rsyslog
-
-### Development Workflow
-1. **Testing**: Use Proxmox VM environment for safe testing
-2. **Backup**: Always backup UCI configuration before changes (`uci export > backup.uci`)
-3. **Validation**: Test interface detection with `iw dev` and `uci show wireless`
-4. **Verification**: Confirm SQM status and cron scheduling after deployment
-5. **Documentation**: Update service-specific docs in `/docs/` subdirectories
-
 ### Common Troubleshooting Patterns
 - **Interface Detection Issues**: Check `iw dev` output vs UCI wireless configuration
 - **SQM Configuration**: Verify with `uci show sqm` and `/etc/init.d/sqm status`
 - **Cron Scheduling**: Test with `crontab -l` and `logread | grep "Multi-WiFi-Throttle"`
 - **UCI Persistence**: Confirm changes with `uci commit` and router reboot testing
+
+## Tooling for Shell Interactions
+Use modern CLI tools for efficient shell operations:
+- **Finding FILES**: Use `fd` (fast file discovery)
+- **Finding TEXT/strings**: Use `rg` (ripgrep for text search)
+- **Finding CODE STRUCTURE**: Use `ast-grep` (AST-based code search)
+- **Selecting from multiple results**: Pipe to `fzf` (fuzzy finder)
+- **Interacting with JSON**: Use `jq` (JSON processor)
+- **Interacting with YAML or XML**: Use `yq` (YAML/XML processor)

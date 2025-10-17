@@ -1,0 +1,351 @@
+---
+# Seafile Maintenance Playbook
+# Target: PCT-103 (192.168.1.25) - files.accelior.com on pve2
+# Purpose: Seafile garbage collection and storage optimization
+# Schedule: Bi-monthly (every 2 months) on the 1st day at 2:00 AM
+# Critical: Garbage collection is ESSENTIAL for reclaiming deleted file space
+
+- name: Seafile Maintenance
+  hosts: seafile-server
+  become: yes
+
+  vars:
+    maintenance_log: "/var/log/ansible-seafile-maintenance.log"
+    seafile_container: "seafile"
+    seafile_data_path: "/shared/seafile/seafile-data"
+
+  tasks:
+    # ========================================
+    # MAINTENANCE INITIALIZATION
+    # ========================================
+
+    - name: Create maintenance log entry
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== Seafile maintenance started: {{ ansible_date_time.iso8601 }} ==="
+        create: yes
+      tags: always
+
+    - name: Check disk usage before maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_before
+      changed_when: false
+      tags: always
+
+    - name: Check Seafile data directory size before GC
+      shell: docker exec {{ seafile_container }} du -sh {{ seafile_data_path }}
+      register: seafile_data_before
+      changed_when: false
+      tags: always
+
+    - name: Check Seafile container status
+      shell: docker ps --filter name={{ seafile_container }} --format "{{ "{{" }}.Status{{ "}}" }}"
+      register: seafile_status
+      changed_when: false
+      tags: health
+
+    # ========================================
+    # SEAFILE GARBAGE COLLECTION (DRY-RUN)
+    # ========================================
+
+    - name: Run Seafile GC dry-run to preview cleanup
+      shell: docker exec {{ seafile_container }} /scripts/gc.sh --dry-run
+      register: gc_dry_run
+      changed_when: false
+      timeout: 600
+      tags: gc,dry-run
+
+    - name: Parse dry-run results for removable blocks
+      shell: echo "{{ gc_dry_run.stdout }}" | grep "blocks can be removed" | awk '{sum += $(NF-3)} END {print sum " total blocks can be removed"}'
+      register: removable_blocks
+      changed_when: false
+      when: gc_dry_run is defined
+      tags: gc,dry-run
+
+    - name: Log dry-run results
+      debug:
+        msg: "Dry-run completed: {{ removable_blocks.stdout | default('No data') }}"
+      when: removable_blocks is defined
+      tags: gc,dry-run
+
+    # ========================================
+    # SEAFILE GARBAGE COLLECTION (ACTUAL)
+    # ========================================
+
+    - name: Run Seafile garbage collection
+      shell: docker exec {{ seafile_container }} /scripts/gc.sh
+      register: gc_result
+      timeout: 1800  # 30 minutes timeout
+      tags: gc
+
+    - name: Parse GC results for removed blocks
+      shell: echo "{{ gc_result.stdout }}" | grep "blocks are removed" | awk '{sum += $(NF-3)} END {print sum " total blocks removed"}'
+      register: removed_blocks
+      changed_when: false
+      when: gc_result is defined
+      tags: gc
+
+    - name: Log GC results
+      debug:
+        msg: "Garbage collection completed: {{ removed_blocks.stdout | default('No blocks removed') }}"
+      when: removed_blocks is defined
+      tags: gc
+
+    # ========================================
+    # SEAFILE DATABASE OPTIMIZATION
+    # ========================================
+
+    - name: Check MySQL container status
+      shell: docker ps --filter name=seafile-mysql --format "{{ "{{" }}.Status{{ "}}" }}"
+      register: mysql_status
+      changed_when: false
+      tags: database
+
+    - name: Optimize Seafile MySQL database
+      shell: |
+        docker exec seafile-mysql mysql -uroot -p$(docker exec seafile cat /opt/seafile/conf/seafile.conf | grep password | head -1 | awk -F= '{print $2}' | tr -d ' ') -e "
+        USE seafile_db;
+        OPTIMIZE TABLE Repo, Branch, Commit, Block, FileLocks;
+        USE ccnet_db;
+        OPTIMIZE TABLE EmailUser, Group, GroupUser, SharedRepo;
+        USE seahub_db;
+        OPTIMIZE TABLE base_userprofile, wiki_personalwiki, notifications_usernotification;
+        "
+      register: mysql_optimize
+      ignore_errors: yes
+      when: mysql_status is defined and 'Up' in mysql_status.stdout
+      tags: database
+
+    # ========================================
+    # MEMCACHED RESTART (CACHE FLUSH)
+    # ========================================
+
+    - name: Restart memcached to flush cache
+      shell: docker restart seafile-memcached
+      register: memcached_restart
+      tags: cache
+
+    # ========================================
+    # DOCKER CONTAINER LOG CLEANUP
+    # ========================================
+
+    - name: Get Seafile container log sizes
+      shell: |
+        for container in seafile seafile-mysql seafile-memcached; do
+          log_file=$(docker inspect --format='{{ "{{" }}.LogPath{{ "}}" }}' $container 2>/dev/null)
+          if [ -f "$log_file" ]; then
+            echo "$container: $(du -h $log_file | awk '{print $1}')"
+          fi
+        done
+      register: container_logs_before
+      changed_when: false
+      tags: logs
+
+    - name: Truncate large Seafile container logs (>100MB)
+      shell: |
+        for container in seafile seafile-mysql seafile-memcached; do
+          log_file=$(docker inspect --format='{{ "{{" }}.LogPath{{ "}}" }}' $container 2>/dev/null)
+          if [ -f "$log_file" ]; then
+            size=$(stat -c%s "$log_file" 2>/dev/null || echo 0)
+            if [ $size -gt 104857600 ]; then
+              truncate -s 50M "$log_file"
+              echo "Truncated $container log"
+            fi
+          fi
+        done
+      register: log_truncate
+      changed_when: log_truncate.stdout != ""
+      tags: logs
+
+    # ========================================
+    # SEAFILE BACKUP CLEANUP (OPTIONAL)
+    # ========================================
+
+    - name: Find old Seafile backup files
+      find:
+        paths: /opt/backup
+        patterns: "seafile-data-*.tar.gz,seafile-db-*.sql.gz"
+        age: "90d"
+      register: old_seafile_backups
+      tags: backups
+
+    - name: Remove old Seafile backup files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_seafile_backups.files }}"
+      when: old_seafile_backups.matched > 0
+      tags: backups
+
+    # ========================================
+    # POST-MAINTENANCE ASSESSMENT
+    # ========================================
+
+    - name: Check disk usage after maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_after
+      changed_when: false
+      tags: always
+
+    - name: Check Seafile data directory size after GC
+      shell: docker exec {{ seafile_container }} du -sh {{ seafile_data_path }}
+      register: seafile_data_after
+      changed_when: false
+      tags: always
+
+    - name: Calculate space freed from Seafile data
+      shell: |
+        before=$(echo "{{ seafile_data_before.stdout }}" | awk '{print $1}' | sed 's/G//')
+        after=$(echo "{{ seafile_data_after.stdout }}" | awk '{print $1}' | sed 's/G//')
+        if command -v bc > /dev/null; then
+          freed=$(echo "$before - $after" | bc)
+        else
+          freed=$((before - after))
+        fi
+        echo "${freed}G freed from Seafile data"
+      register: seafile_space_freed
+      changed_when: false
+      tags: always
+
+    - name: Calculate total disk space freed
+      shell: |
+        before=$(echo "{{ disk_usage_before.stdout }}" | awk '{print $3}' | sed 's/G//')
+        after=$(echo "{{ disk_usage_after.stdout }}" | awk '{print $3}' | sed 's/G//')
+        if command -v bc > /dev/null; then
+          freed=$(echo "$before - $after" | bc)
+        else
+          freed=$((before - after))
+        fi
+        echo "${freed}G total freed"
+      register: total_space_freed
+      changed_when: false
+      tags: always
+
+    # ========================================
+    # SEAFILE HEALTH CHECKS
+    # ========================================
+
+    - name: Verify Seafile container is healthy
+      shell: docker ps --filter name={{ seafile_container }} --format "{{ "{{" }}.Status{{ "}}" }}"
+      register: seafile_health_after
+      changed_when: false
+      failed_when: "'healthy' not in seafile_health_after.stdout"
+      tags: health
+
+    - name: Check Seafile web interface accessibility
+      uri:
+        url: "http://localhost:80"
+        status_code: 200
+        timeout: 30
+      register: web_check
+      ignore_errors: yes
+      tags: health
+
+    - name: Get Seafile version
+      shell: docker exec {{ seafile_container }} cat /opt/seafile/seafile-server-latest/version
+      register: seafile_version
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    # ========================================
+    # MAINTENANCE REPORTING
+    # ========================================
+
+    - name: Log maintenance results
+      blockinfile:
+        path: "{{ maintenance_log }}"
+        marker: "<!-- {mark} ANSIBLE MANAGED BLOCK {{ ansible_date_time.iso8601 }} -->"
+        block: |
+          Seafile Maintenance Summary:
+          - Date: {{ ansible_date_time.iso8601 }}
+          - Seafile Version: {{ seafile_version.stdout | default('Unknown') }}
+          - Seafile Status: {{ seafile_status.stdout }}
+
+          DISK USAGE:
+          - Container Before: {{ disk_usage_before.stdout }}
+          - Container After: {{ disk_usage_after.stdout }}
+          - Total Space Freed: {{ total_space_freed.stdout }}
+
+          SEAFILE DATA:
+          - Data Directory Before: {{ seafile_data_before.stdout }}
+          - Data Directory After: {{ seafile_data_after.stdout }}
+          - Seafile Space Freed: {{ seafile_space_freed.stdout }}
+
+          GARBAGE COLLECTION:
+          - Removable Blocks (Dry-run): {{ removable_blocks.stdout | default('Not run') }}
+          - Blocks Removed: {{ removed_blocks.stdout | default('0 blocks removed') }}
+          - GC Duration: {{ (gc_result.end | default(ansible_date_time.iso8601)) | to_datetime - (gc_result.start | default(ansible_date_time.iso8601)) | to_datetime if gc_result is defined else 'N/A' }}
+
+          DATABASE:
+          - MySQL Status: {{ mysql_status.stdout | default('Unknown') }}
+          - Database Optimization: {{ 'Completed' if mysql_optimize.changed else 'Skipped' }}
+
+          CACHE:
+          - Memcached Restart: {{ 'Yes' if memcached_restart.changed else 'No' }}
+
+          LOGS:
+          - Container Logs Before: {{ container_logs_before.stdout_lines | join(', ') }}
+          - Logs Truncated: {{ 'Yes' if log_truncate.changed else 'No' }}
+
+          BACKUPS:
+          - Old Backups Removed: {{ old_seafile_backups.matched | default(0) }} files
+
+          HEALTH CHECK:
+          - Seafile Container: {{ seafile_health_after.stdout }}
+          - Web Interface: {{ 'Accessible' if web_check.status == 200 else 'Check Failed' }}
+      tags: always
+
+    - name: Send maintenance summary
+      debug:
+        msg: |
+          ============================================
+          Seafile Maintenance Summary
+          ============================================
+          Host: {{ ansible_hostname }}
+          Date: {{ ansible_date_time.iso8601 }}
+          Seafile Version: {{ seafile_version.stdout | default('Unknown') }}
+
+          DISK USAGE:
+          Container Before: {{ disk_usage_before.stdout }}
+          Container After:  {{ disk_usage_after.stdout }}
+          Total Space Freed: {{ total_space_freed.stdout }}
+
+          SEAFILE DATA DIRECTORY:
+          Before: {{ seafile_data_before.stdout }}
+          After:  {{ seafile_data_after.stdout }}
+          Space Freed: {{ seafile_space_freed.stdout }}
+
+          GARBAGE COLLECTION:
+          Dry-run Preview: {{ removable_blocks.stdout | default('Not run') }}
+          Actual Removal: {{ removed_blocks.stdout | default('0 blocks removed') }}
+
+          DATABASE OPTIMIZATION:
+          MySQL Status: {{ mysql_status.stdout | default('Unknown') }}
+          Optimization: {{ 'Completed' if mysql_optimize is defined and mysql_optimize.changed else 'Skipped' }}
+
+          CACHE MANAGEMENT:
+          Memcached Restarted: {{ 'Yes' if memcached_restart.changed else 'No' }}
+
+          LOG CLEANUP:
+          Logs Truncated: {{ 'Yes' if log_truncate.changed else 'No' }}
+
+          BACKUP CLEANUP:
+          Old Backups Removed: {{ old_seafile_backups.matched | default(0) }} files
+
+          HEALTH STATUS:
+          Seafile Container: {{ seafile_health_after.stdout }}
+          Web Interface: {{ 'Accessible (200 OK)' if web_check is defined and web_check.status == 200 else 'Check needed' }}
+
+          ============================================
+          ⚠️  IMPORTANT: Garbage collection is critical for storage health!
+          Without regular GC, deleted files never free disk space.
+          This maintenance runs bi-monthly to keep storage optimized.
+          ============================================
+      tags: always
+
+    - name: Create maintenance completion marker
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== Seafile maintenance completed successfully: {{ ansible_date_time.iso8601 }} ==="
+      tags: always

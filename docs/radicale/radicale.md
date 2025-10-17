@@ -2,20 +2,27 @@
 
 ## Overview
 
-Radicale is a CalDAV/CardDAV server providing calendar and contact synchronization capabilities for the infrastructure. It runs in a Docker container within the Hestia mail server environment and is accessible via multiple domain endpoints.
+Radicale is a CalDAV/CardDAV server providing calendar and contact synchronization capabilities for the infrastructure. It runs in a Docker container within the Hestia mail server environment and is accessible via the primary domain `radicale.home.accelior.com`.
 
 ## Architecture
 
 ### Container Infrastructure
-- **Host**: Proxmox container 130 (mail.vega-messenger.com)
-- **Container Image**: `tomsquest/docker-radicale`
-- **Status**: Up 4+ weeks (healthy)
+- **Host**: Proxmox container 130 (mail.vega-messenger.com) at 192.168.1.30
+- **Container Image**: `tomsquest/docker-radicale:latest`
+- **Version**: 3.5.7.0 (Python 3.12.11)
+- **Status**: Healthy
 - **Docker Health**: Responding to health checks every 30 seconds
+- **Last Updated**: October 9, 2025
 
 ### Network Configuration
 ```
-External Traffic Flow:
-Internet → Dynamic DNS → OPNsense (77.109.89.47:443) → NPM (192.168.1.9:443) → Hestia Nginx (192.168.1.30:443) → Radicale Container (192.168.1.30:5232)
+External Traffic Flow (Primary):
+Internet → Dynamic DNS → OPNsense (WAN:443) → NPM (192.168.1.9:443) → Radicale Container (192.168.1.30:5232)
+Domain: radicale.home.accelior.com
+
+Legacy Path (Alternative):
+Internet → Dynamic DNS → OPNsense (WAN:443) → NPM (192.168.1.9:443) → Hestia Nginx (192.168.1.30:443/radicale/) → Radicale Container
+Domain: mail.accelior.com/radicale/.web/
 ```
 
 ### Port Mapping
@@ -27,65 +34,64 @@ Internet → Dynamic DNS → OPNsense (77.109.89.47:443) → NPM (192.168.1.9:44
 
 ### Domain Structure
 ```
-Primary Domains:
-├── mail.accelior.com/radicale/.web/     (Working, mail server domain)
-└── radicale.acmea.tech/                 (Target domain, DNS propagation issues)
+Primary Domain:
+radicale.home.accelior.com (Production subdomain)
 
-DNS Records (acmea.tech zone):
-├── base.acmea.tech         → A 77.109.89.47 (TTL: 60s)
-└── radicale.acmea.tech     → CNAME base.acmea.tech (TTL: 300s)
+DNS Records (accelior.com zone):
+├── home.accelior.com           → A <WAN IP> (Dynamic DNS, TTL: 30s)
+└── radicale.home.accelior.com  → CNAME home.accelior.com
+
+Legacy Access:
+├── mail.accelior.com/radicale/.web/ (Path-based routing via Hestia Nginx)
 ```
 
 ### Dynamic DNS Configuration
-**OPNsense Dynamic DNS Services:**
-1. **Legacy Service (home.accelior.com)**:
-   - Interface: opt1
-   - Provider: Cloudflare v6
-   - Updates: home.accelior.com → Current WAN IP
-   - TTL: 30 seconds
-
-2. **Modern Service (base.acmea.tech)**:
-   - Interface: wan
-   - Provider: Cloudflare
-   - Token: nNZSTw1xMqoy39mRSXoWvG5fWq7ztJpHTj3Krrgb
-   - Updates: base.acmea.tech → Current WAN IP
-   - TTL: 300 seconds
+**OPNsense Dynamic DNS Service:**
+- **Domain**: home.accelior.com
+- **Interface**: opt1
+- **Provider**: Cloudflare v6
+- **Updates**: Automatic WAN IP updates via Cloudflare API
+- **TTL**: 30 seconds
+- **Used By**: radicale.home.accelior.com (via CNAME)
 
 ## SSL/TLS Configuration
 
 ### Certificate Details
-- **Issuer**: Let's Encrypt (E8)
-- **Subject**: radicale.acmea.tech
-- **Validity**: September 16, 2025 → December 15, 2025
-- **Key Type**: ECDSA P-384
-- **SAN**: radicale.acmea.tech
+- **Issuer**: Let's Encrypt
+- **Subject**: radicale.home.accelior.com
+- **Managed By**: Nginx Proxy Manager (192.168.1.9)
+- **Auto-renewal**: Enabled via NPM Let's Encrypt integration
+- **Certificate ID**: npm-49
+- **Key Type**: RSA (Let's Encrypt default)
 
-### Certificate Chain
-```
-Certificate Authority: Let's Encrypt (E8)
-├── Serial: 05:74:e7:ba:85:6f:1b:f6:d7:c9:72:46:c8:a3:60:ef:6e:39
-├── Signature Algorithm: ecdsa-with-SHA384
-├── Key Usage: Digital Signature (critical)
-├── Extended Key Usage: TLS Web Server Authentication, TLS Web Client Authentication
-└── Certificate Transparency: 2 SCT entries present
-```
+### Certificate Management
+- **Automatic Renewal**: NPM handles renewal 30 days before expiration
+- **Certificate Storage**: `/etc/letsencrypt/live/npm-49/` (in NPM container)
+- **Monitoring**: NPM dashboard shows expiration dates and renewal status
 
 ## Service Configuration
 
 ### Docker Container Details
 ```yaml
 Container: radicale
-Image: tomsquest/docker-radicale
-Status: Up 4 weeks (healthy)
-Created: August 20, 2025 at 20:23:28 UTC
+Image: tomsquest/docker-radicale:latest
+Version: 3.5.7.0
+Python Runtime: 3.12.11
+Status: Healthy
 Ports: 192.168.1.30:5232->5232/tcp
-Health Check: Every 30 seconds
+Volumes:
+  - /root/radicale/data:/data
+  - /root/radicale/config:/config:ro
+Restart Policy: unless-stopped
+Health Check: curl -f http://localhost:5232/.web/ (every 30s)
+Last Updated: October 9, 2025
 ```
 
-### Internal Service Endpoints
-- **Direct Access**: `http://192.168.1.30:5232/.web/`
-- **HTTPS Proxy**: `https://192.168.1.30/radicale/`
-- **Authentication**: HTTP Basic Auth via `/home/accelior/conf/mail/.htpasswd`
+### Service Endpoints
+- **Primary (Production)**: `https://radicale.home.accelior.com/.web/`
+- **Direct Access**: `http://192.168.1.30:5232/.web/` (internal only)
+- **Legacy Path**: `https://mail.accelior.com/radicale/.web/` (path-based routing)
+- **Authentication**: HTTP Basic Auth (no authentication on direct access)
 
 ## Authentication & Security
 
@@ -109,7 +115,11 @@ Access-Control-Expose-Headers: Etag, Preference-Applied, Vary
 - **Additional Security Options**: None configured (potential improvement area)
 
 ## Nginx Proxy Configuration
-
+Created: 18th July 2025
+http://192.168.1.30:5232
+Let's Encrypt
+Public
+ Online
 ### Internal Nginx Configuration (192.168.1.30)
 ```nginx
 # Proxy configuration in Hestia Nginx
@@ -127,44 +137,53 @@ location /radicale/ {
 ```
 
 ### NPM Configuration (192.168.1.9)
-**Proxy Host Configuration:**
+
+**Primary Proxy Host (radicale.home.accelior.com):**
+- **ID**: 36
+- **Domain**: radicale.home.accelior.com
+- **Forward Scheme**: HTTP
+- **Forward Host**: 192.168.1.30
+- **Forward Port**: 5232
+- **SSL Certificate**: Let's Encrypt (npm-49)
+- **Configuration**: `/data/nginx/proxy_host/36.conf`
+
+**Legacy Proxy Host (mail.accelior.com):**
 - **ID**: 18
 - **Domain**: mail.accelior.com
 - **Forward Scheme**: HTTPS
 - **Forward Host**: 192.168.1.30
 - **Forward Port**: 443
 - **SSL Certificate**: Let's Encrypt (npm-16)
-
-**Required NPM Fix for radicale.acmea.tech:**
-```nginx
-# New proxy host needed for radicale.acmea.tech
-# Forward to: 192.168.1.30:443
-# SSL Certificate: Let's Encrypt for radicale.acmea.tech
-```
+- **Note**: Requires Hestia Nginx to proxy /radicale/ path
 
 ## Client Configuration
 
 ### CalDAV/CardDAV Settings
 ```
-Server URL: https://radicale.acmea.tech/ (or https://mail.accelior.com/radicale/)
-Authentication: HTTP Basic Auth
+Server URL: https://radicale.home.accelior.com/
+Authentication: HTTP Basic Auth (optional for now, no auth configured)
 Port: 443 (HTTPS)
 SSL/TLS: Required
 Discovery: Automatic via .well-known endpoints
+
+Alternative (Legacy):
+Server URL: https://mail.accelior.com/radicale/
+Authentication: HTTP Basic Auth (required)
+Credentials: /home/accelior/conf/mail/.htpasswd
 ```
 
 ### Supported Clients
 - **iOS/macOS**: Native Calendar and Contacts apps
 - **Android**: DAVx5, CalDAV-Sync, CardDAV-Sync
 - **Desktop**: Mozilla Thunderbird + CardBook, Evolution, KDE Kontact
-- **Web**: Browser access via .web interface
+- **Web**: Browser access via `/.web/` interface
 
 ### DAVx5 Configuration
 ```
 Account Type: CalDAV/CardDAV
-Base URL: https://radicale.acmea.tech/
-Username: [configured username]
-Password: [configured password]
+Base URL: https://radicale.home.accelior.com/
+Username: [optional - no auth currently]
+Password: [optional - no auth currently]
 Auto-discovery: Enabled
 ```
 
@@ -172,18 +191,27 @@ Auto-discovery: Enabled
 
 ### Common Issues
 
-#### 1. DNS Propagation Delays
-**Symptoms**: Client connection failures, wrong IP resolution
+#### 1. DNS Propagation Delays & Pi-hole Cache
+**Symptoms**: Client connection failures, DNS_PROBE_FINISHED_NXDOMAIN error
 **Diagnosis**:
 ```bash
 # Check authoritative DNS
-dig @cleo.ns.cloudflare.com radicale.acmea.tech
+dig @cleo.ns.cloudflare.com radicale.home.accelior.com
+
+# Check Pi-hole resolution
+dig @192.168.1.5 radicale.home.accelior.com
 
 # Check public DNS
-dig @8.8.8.8 radicale.acmea.tech
-dig @1.1.1.1 radicale.acmea.tech
+dig @8.8.8.8 radicale.home.accelior.com
+dig @1.1.1.1 radicale.home.accelior.com
 ```
-**Solution**: Wait for propagation or use hosts file entry
+**Common Issue**: Pi-hole caches negative NXDOMAIN responses
+**Solution**:
+```bash
+# Reload Pi-hole DNS to clear cache
+ssh root@192.168.1.20 'docker exec pihole pihole reloaddns'
+```
+**Note**: Pi-hole runs as Docker container on 192.168.1.20, not directly on 192.168.1.5
 
 #### 2. SSL Certificate Issues
 **Diagnosis**:
@@ -203,7 +231,25 @@ curl -I http://192.168.1.30:5232/.web/
 curl -u username:password http://192.168.1.30:5232/.web/
 ```
 
-#### 4. Firewall/Network Issues
+#### 4. NPM Database Write Errors
+**Symptoms**: "Internal error" when creating proxy hosts in NPM
+**Error Log**: `SQLITE_READONLY: attempt to write a readonly database`
+**Diagnosis**:
+```bash
+# Check NPM database permissions
+ssh root@192.168.1.20 'docker exec npm ls -la /data/database.sqlite'
+```
+**Solution**:
+```bash
+# Fix database permissions
+ssh root@192.168.1.20 'docker exec npm chmod 666 /data/database.sqlite'
+
+# Restart NPM container
+ssh root@192.168.1.20 'docker restart npm'
+```
+**Root Cause**: Database file permissions become read-only (644 instead of 666)
+
+#### 5. Firewall/Network Issues
 **Previous Issue**: fail2ban accumulated 400+ REJECT rules blocking web traffic
 **Resolution**: Flush fail2ban chains, restore proper RETURN rule
 **Prevention**: Monitor fail2ban rule accumulation
@@ -227,20 +273,24 @@ curl -I https://192.168.1.30/radicale/
 # Port accessibility
 nc -zv 192.168.1.30 5232
 
-# HTTPS endpoint
-curl -I https://radicale.acmea.tech/
+# HTTPS endpoint (primary)
+curl -I https://radicale.home.accelior.com/.web/
 
 # DNS resolution
-nslookup radicale.acmea.tech
+dig radicale.home.accelior.com
+nslookup radicale.home.accelior.com
 ```
 
 #### SSL/Certificate Validation
 ```bash
 # Certificate details
-openssl s_client -connect radicale.acmea.tech:443 -servername radicale.acmea.tech
+openssl s_client -connect radicale.home.accelior.com:443 -servername radicale.home.accelior.com
 
 # Certificate expiration
-echo | openssl s_client -connect radicale.acmea.tech:443 2>/dev/null | openssl x509 -noout -dates
+echo | openssl s_client -connect radicale.home.accelior.com:443 2>/dev/null | openssl x509 -noout -dates
+
+# NPM certificate check
+ssh root@192.168.1.20 'docker exec npm ls -la /etc/letsencrypt/live/npm-49/'
 ```
 
 ## Maintenance
@@ -264,19 +314,51 @@ echo | openssl s_client -connect radicale.acmea.tech:443 2>/dev/null | openssl x
 
 ### Backup Procedures
 
-#### Configuration Backup
+#### Full Backup (Recommended)
 ```bash
-# Nginx configuration
-cp /home/accelior/conf/mail/.htpasswd /backup/location/
+# Complete backup of Radicale directory (data + config + compose)
+ssh root@pve2 'pct exec 130 -- tar -czf /root/radicale-backup-$(date +%Y%m%d-%H%M%S).tar.gz /root/radicale/'
 
-# Docker container config
-docker inspect radicale > /backup/radicale-config.json
+# Verify backup
+ssh root@pve2 'pct exec 130 -- tar -tzf /root/radicale-backup-*.tar.gz | head -20'
+
+# Latest backup location: /root/radicale-backup-20251009-214358.tar.gz (6.4MB)
 ```
 
-#### Data Backup
+#### Container Update Procedure
 ```bash
-# Radicale data directory (if persistent)
-docker exec radicale tar -czf - /data | ssh backup-server 'cat > radicale-data.tar.gz'
+# 1. Backup current state
+ssh root@pve2 'pct exec 130 -- tar -czf /root/radicale-backup-$(date +%Y%m%d-%H%M%S).tar.gz /root/radicale/'
+
+# 2. Stop and remove old container
+ssh root@pve2 'pct exec 130 -- docker stop radicale'
+ssh root@pve2 'pct exec 130 -- docker rm radicale'
+
+# 3. Pull latest image
+ssh root@pve2 'pct exec 130 -- docker pull tomsquest/docker-radicale:latest'
+
+# 4. Recreate container with same configuration
+ssh root@pve2 'pct exec 130 -- docker run -d --name radicale \
+  --restart unless-stopped \
+  -p 192.168.1.30:5232:5232 \
+  -v /root/radicale/data:/data \
+  -v /root/radicale/config:/config:ro \
+  --health-cmd="curl -f http://localhost:5232/.web/" \
+  --health-interval=30s \
+  tomsquest/docker-radicale:latest'
+
+# 5. Verify health
+ssh root@pve2 'pct exec 130 -- docker ps --filter name=radicale'
+curl -I https://radicale.home.accelior.com/.web/
+```
+
+#### Configuration Backup
+```bash
+# Nginx configuration (if using path-based routing)
+ssh root@pve2 'pct exec 130 -- cp /home/accelior/conf/mail/.htpasswd /root/backup/'
+
+# Docker container config inspection
+ssh root@pve2 'pct exec 130 -- docker inspect radicale > /root/radicale-config.json'
 ```
 
 ## Performance Optimization
@@ -349,6 +431,24 @@ docker exec radicale tar -czf - /data | ssh backup-server 'cat > radicale-data.t
 
 ---
 
-**Last Updated**: September 18, 2025
-**Document Version**: 1.0
+## Change Log
+
+### Version 2.0 - October 9, 2025
+- Updated to Radicale 3.5.7.0 (from 3.5.4.0)
+- Migrated primary access to subdomain: radicale.home.accelior.com
+- Added NPM proxy host configuration (ID 36)
+- Documented Pi-hole DNS cache troubleshooting
+- Added NPM database permission issue resolution
+- Updated backup and container update procedures
+- Documented complete network flow for subdomain routing
+
+### Version 1.0 - September 18, 2025
+- Initial documentation
+- Path-based routing via mail.accelior.com/radicale/
+- Container version 3.5.4.0
+
+---
+
+**Last Updated**: October 9, 2025
+**Document Version**: 2.0
 **Maintainer**: Infrastructure Team

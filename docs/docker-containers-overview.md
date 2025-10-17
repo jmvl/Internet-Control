@@ -39,6 +39,8 @@ The infrastructure runs Docker containers across two primary hosts:
 | **supabase-storage** | supabase/storage-api:v1.11.1 | ✅ Healthy | 5000 (internal) | File storage service | [📁 Supabase/](Supabase/) |
 | **n8n** | n8nio/n8n:latest | ✅ Running | 5678:5678 | Workflow automation | - |
 | **netdata** | netdata/netdata:latest | ✅ Healthy | 19999:19999 | System monitoring | [📁 netdata/](netdata/) |
+| **frigate** | ghcr.io/blakeblackshear/frigate:stable | ✅ Running | 5000:5000, 8554:8554, 8555:8555 | AI-powered NVR | [📁 docker/frigate.md](docker/frigate.md) |
+| **ispyagentdvr** | doitandbedone/ispyagentdvr:latest | ⏸️ Stopped | 8090:8090* | Network video recording (replaced by Frigate) | [📁 docker/ispyagentdvr.md](docker/ispyagentdvr.md) |
 | **portainer** | portainer/portainer-ce:latest | ✅ Running | 8000:8000, 9443:9443 | Container management | [📁 portainer/](portainer/) |
 
 *Direct service access (bypassing Caddy proxy)
@@ -77,11 +79,19 @@ The infrastructure runs Docker containers across two primary hosts:
 | **81** | Nginx Proxy Manager | Internal | Admin interface |
 | **2283** | Immich | Internal/Proxy | Photo management interface |
 | **3010** | Uptime Kuma | Internal | Monitoring dashboard |
+| **3478** | iSpy Agent DVR | Internal | STUN for WebRTC (UDP) - inactive |
+| **5000** | Frigate | Internal | AI NVR web UI |
+| **5678** | n8n | Internal | Workflow automation |
 | **8000** | Portainer | Internal | Container management (HTTP) |
 | **8080** | Wedding Share | Internal | Photo gallery |
 | **8083** | Calibre-Web | Internal | E-book library |
+| **8090** | iSpy Agent DVR | Internal | Video surveillance - inactive |
+| **8554** | Frigate | Internal | RTSP restreaming |
+| **8555** | Frigate | Internal | WebRTC (TCP/UDP) |
 | **9001** | Portainer Agent | Internal | Container monitoring |
 | **9443** | Portainer | Internal | Container management (HTTPS) |
+| **19999** | Netdata | Internal | System monitoring |
+| **50000-50100** | iSpy Agent DVR | Internal | TURN for WebRTC (UDP) |
 
 ### Network Bridges
 - **immich_default**: Immich stack networking

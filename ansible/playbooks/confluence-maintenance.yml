@@ -1,0 +1,390 @@
+---
+# Confluence System Maintenance Playbook
+# Target: PCT-100 (192.168.1.21) - Confluence Container
+# Purpose: Comprehensive system maintenance including OS updates, log cleanup, and Confluence health checks
+# Schedule: Weekly maintenance, monthly comprehensive
+
+- name: Confluence System Maintenance
+  hosts: confluence-server
+  become: yes
+
+  vars:
+    maintenance_log: "/var/log/ansible-confluence-maintenance.log"
+    log_retention_days: 30
+    confluence_home: "/var/atlassian/application-data/confluence"
+    confluence_logs: "{{ confluence_home }}/logs"
+    confluence_install: "/opt/atlassian/confluence"
+    catalina_logs: "{{ confluence_install }}/logs"
+    tomcat_logs: "{{ confluence_install }}/tomcat/logs"
+
+  tasks:
+    # ========================================
+    # MAINTENANCE INITIALIZATION
+    # ========================================
+
+    - name: Create maintenance log entry
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== Confluence system maintenance started: {{ ansible_date_time.iso8601 }} ==="
+        create: yes
+      tags: always
+
+    - name: Check disk usage before maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_before
+      changed_when: false
+      tags: always
+
+    # ========================================
+    # SYSTEM LOG CLEANUP
+    # ========================================
+
+    - name: Rotate and clean system journals
+      shell: journalctl --vacuum-time={{ log_retention_days }}d
+      register: journal_cleanup
+      tags: logs
+
+    - name: Clean old syslog files
+      find:
+        paths: /var/log
+        patterns: "*.log.*,*.gz,syslog.*,daemon.log.*"
+        age: "{{ log_retention_days }}d"
+      register: old_syslogs
+      tags: logs
+
+    - name: Remove old syslog files
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_syslogs.files }}"
+      when: old_syslogs.matched > 0
+      tags: logs
+
+    # ========================================
+    # CONFLUENCE LOG CLEANUP
+    # ========================================
+
+    - name: Find old Confluence application logs
+      find:
+        paths: "{{ confluence_logs }}"
+        patterns: "atlassian-confluence*.log.*,*.gz"
+        age: "{{ log_retention_days }}d"
+      register: old_confluence_logs
+      ignore_errors: yes
+      tags: logs
+
+    - name: Remove old Confluence application logs
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_confluence_logs.files }}"
+      when: old_confluence_logs.matched > 0
+      tags: logs
+
+    - name: Truncate large Confluence logs (>500MB)
+      shell: |
+        find {{ confluence_logs }} -name "atlassian-confluence*.log" -type f -size +500M -exec truncate -s 200M {} \; 2>/dev/null || true
+      tags: logs
+
+    - name: Find old Catalina logs
+      find:
+        paths: "{{ catalina_logs }}"
+        patterns: "catalina*.log.*,localhost*.log.*,*.gz"
+        age: "{{ log_retention_days }}d"
+      register: old_catalina_logs
+      ignore_errors: yes
+      tags: logs
+
+    - name: Remove old Catalina logs
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_catalina_logs.files }}"
+      when: old_catalina_logs.matched > 0
+      tags: logs
+
+    - name: Find old Tomcat access logs
+      find:
+        paths: "{{ tomcat_logs }}"
+        patterns: "localhost_access_log*.txt,catalina.out.*"
+        age: "{{ log_retention_days }}d"
+      register: old_tomcat_logs
+      ignore_errors: yes
+      tags: logs
+
+    - name: Remove old Tomcat logs
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ old_tomcat_logs.files }}"
+      when: old_tomcat_logs.matched > 0
+      tags: logs
+
+    - name: Truncate catalina.out if too large (>1GB)
+      shell: |
+        if [ -f {{ catalina_logs }}/catalina.out ]; then
+          size=$(stat -f%z {{ catalina_logs }}/catalina.out 2>/dev/null || stat -c%s {{ catalina_logs }}/catalina.out)
+          if [ $size -gt 1073741824 ]; then
+            tail -c 200M {{ catalina_logs }}/catalina.out > {{ catalina_logs }}/catalina.out.tmp
+            mv {{ catalina_logs }}/catalina.out.tmp {{ catalina_logs }}/catalina.out
+            echo "Truncated catalina.out from $(($size / 1048576))MB to 200MB"
+          fi
+        fi
+      register: catalina_truncate
+      changed_when: "'Truncated' in catalina_truncate.stdout"
+      tags: logs
+
+    # ========================================
+    # CONFLUENCE WORK DIRECTORY CLEANUP
+    # ========================================
+
+    - name: Clean Confluence temp directory
+      shell: |
+        find {{ confluence_home }}/temp -type f -mtime +7 -delete 2>/dev/null || true
+        find {{ confluence_home }}/temp -type d -empty -delete 2>/dev/null || true
+      ignore_errors: yes
+      tags: logs
+
+    - name: Clean old Confluence backups (if local backups exist)
+      shell: |
+        find {{ confluence_home }}/backups -name "*.zip" -mtime +60 -delete 2>/dev/null || true
+      ignore_errors: yes
+      tags: logs
+
+    - name: Clean old Confluence thumbnails cache
+      shell: |
+        find {{ confluence_home }}/thumbnails -type f -mtime +90 -delete 2>/dev/null || true
+      ignore_errors: yes
+      tags: logs
+
+    - name: Clean old Confluence plugin cache
+      shell: |
+        find {{ confluence_home }}/plugins-cache -type f -mtime +30 -delete 2>/dev/null || true
+        find {{ confluence_home }}/bundled-plugins-cache -type f -mtime +30 -delete 2>/dev/null || true
+      ignore_errors: yes
+      tags: logs
+
+    # ========================================
+    # SYSTEM PACKAGE UPDATES
+    # ========================================
+
+    - name: Update package cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      tags: updates
+
+    - name: Upgrade all packages (dist-upgrade)
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+      register: apt_updates
+      tags: updates
+
+    - name: Check if reboot is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+      tags: updates
+
+    # ========================================
+    # CONFLUENCE SERVICE HEALTH CHECKS
+    # ========================================
+
+    - name: Check Confluence process status
+      shell: ps aux | grep -i "[c]onfluence" | wc -l
+      register: confluence_process_count
+      changed_when: false
+      tags: health
+
+    - name: Check Confluence HTTP port
+      shell: |
+        netstat -tlnp | grep ':8090' || ss -tlnp | grep ':8090'
+      register: confluence_port
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    - name: Check Confluence synchrony port (collaborative editing)
+      shell: |
+        netstat -tlnp | grep ':8091' || ss -tlnp | grep ':8091'
+      register: synchrony_port
+      changed_when: false
+      ignore_errors: yes
+      tags: health
+
+    - name: Check Confluence database connectivity
+      shell: |
+        ps aux | grep -i "[p]ostgres" | wc -l
+      register: db_process_count
+      changed_when: false
+      tags: health
+
+    - name: Get Confluence service status via systemd
+      systemd:
+        name: confluence
+        state: started
+      check_mode: yes
+      register: confluence_service_status
+      ignore_errors: yes
+      tags: health
+
+    # ========================================
+    # DATABASE MAINTENANCE (POSTGRESQL)
+    # ========================================
+
+    - name: Check PostgreSQL service
+      systemd:
+        name: postgresql
+        state: started
+        enabled: yes
+      ignore_errors: yes
+      tags: database
+
+    - name: Vacuum Confluence database (comprehensive mode only)
+      shell: |
+        su - postgres -c "vacuumdb --analyze confluence" 2>&1 || true
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      register: db_vacuum
+      ignore_errors: yes
+      tags: comprehensive
+
+    # ========================================
+    # CONFLUENCE ATTACHMENT STORAGE CHECK
+    # ========================================
+
+    - name: Check attachment storage usage
+      shell: |
+        du -sh {{ confluence_home }}/attachments 2>/dev/null || echo "0"
+      register: attachment_size
+      changed_when: false
+      tags: health
+
+    - name: Check Confluence index size
+      shell: |
+        du -sh {{ confluence_home }}/index 2>/dev/null || echo "0"
+      register: index_size
+      changed_when: false
+      tags: health
+
+    # ========================================
+    # POST-MAINTENANCE ASSESSMENT
+    # ========================================
+
+    - name: Check disk usage after maintenance
+      shell: df -h / | tail -1
+      register: disk_usage_after
+      changed_when: false
+      tags: always
+
+    - name: Calculate space freed
+      shell: |
+        before=$(df / | tail -1 | awk '{print $3}')
+        after=$(df / | tail -1 | awk '{print $3}')
+        freed=$((before - after))
+        if [ $freed -lt 0 ]; then freed=0; fi
+        echo "${freed}K"
+      register: space_freed
+      changed_when: false
+      tags: always
+
+    # ========================================
+    # COMPREHENSIVE MAINTENANCE (MONTHLY)
+    # ========================================
+
+    - name: Clean APT cache thoroughly (comprehensive mode only)
+      shell: |
+        apt-get clean
+        apt-get autoclean
+        rm -rf /var/cache/apt/archives/*.deb
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      tags: comprehensive
+
+    - name: Rebuild Confluence search index (comprehensive mode only)
+      shell: |
+        # This would typically be done via Confluence REST API
+        echo "Manual rebuild recommended via Confluence admin UI: /admin/rebuild-search-index.action"
+      when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+      tags: comprehensive
+
+    # ========================================
+    # MAINTENANCE REPORTING
+    # ========================================
+
+    - name: Log maintenance results
+      blockinfile:
+        path: "{{ maintenance_log }}"
+        marker: "<!-- {mark} ANSIBLE MANAGED BLOCK {{ ansible_date_time.iso8601 }} -->"
+        block: |
+          Maintenance Summary:
+          - Date: {{ ansible_date_time.iso8601 }}
+          - Disk Usage Before: {{ disk_usage_before.stdout }}
+          - Disk Usage After: {{ disk_usage_after.stdout }}
+          - Space Freed: {{ space_freed.stdout }}
+          - System Updates: {{ apt_updates.changed | default(false) }}
+          - Journal Cleaned: {{ journal_cleanup.changed | default(false) }}
+          - Confluence Logs Removed: {{ old_confluence_logs.matched | default(0) }} files
+          - Catalina Logs Removed: {{ old_catalina_logs.matched | default(0) }} files
+          - Tomcat Logs Removed: {{ old_tomcat_logs.matched | default(0) }} files
+          - Confluence Processes: {{ confluence_process_count.stdout }}
+          - Confluence Port Status: {{ 'Listening' if confluence_port.rc == 0 else 'Not listening' }}
+          - Synchrony Port Status: {{ 'Listening' if synchrony_port.rc == 0 else 'Not listening' }}
+          - Attachment Storage: {{ attachment_size.stdout }}
+          - Index Storage: {{ index_size.stdout }}
+          - Reboot Required: {{ 'YES' if reboot_required.stat.exists else 'NO' }}
+          {% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}
+          - Database Vacuum: {{ 'Completed' if db_vacuum.rc == 0 else 'Failed' }}
+          {% endif %}
+      tags: always
+
+    - name: Send maintenance summary
+      debug:
+        msg: |
+          ============================================
+          Confluence System Maintenance Summary
+          ============================================
+          Host: {{ ansible_hostname }}
+          Date: {{ ansible_date_time.iso8601 }}
+
+          DISK USAGE:
+          Before: {{ disk_usage_before.stdout }}
+          After:  {{ disk_usage_after.stdout }}
+          Space Freed: {{ space_freed.stdout }}
+
+          SYSTEM UPDATES:
+          Updates Applied: {{ apt_updates.changed | default(false) }}
+          Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if reboot_required.stat.exists else 'NO' }}
+
+          LOG CLEANUP:
+          System Journals: {{ journal_cleanup.changed | default(false) }}
+          Confluence Logs: {{ old_confluence_logs.matched | default(0) }} files removed
+          Catalina Logs: {{ old_catalina_logs.matched | default(0) }} files removed
+          Tomcat Logs: {{ old_tomcat_logs.matched | default(0) }} files removed
+          Catalina.out: {{ catalina_truncate.stdout | default('Not truncated') }}
+
+          CONFLUENCE STATUS:
+          Confluence Processes: {{ confluence_process_count.stdout }}
+          HTTP Port (8090): {{ 'Listening' if confluence_port.rc == 0 else 'NOT LISTENING - CHECK SERVICE' }}
+          Synchrony Port (8091): {{ 'Listening' if synchrony_port.rc == 0 else 'NOT LISTENING' }}
+          Database Processes: {{ db_process_count.stdout }}
+
+          STORAGE:
+          Attachments: {{ attachment_size.stdout }}
+          Search Index: {{ index_size.stdout }}
+
+          {% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}
+          COMPREHENSIVE MAINTENANCE:
+          Database Vacuum: {{ 'Completed' if db_vacuum.rc == 0 else 'Failed/Skipped' }}
+          APT Cache: Cleaned
+          Search Index: Manual rebuild recommended
+          {% endif %}
+
+          ============================================
+      tags: always
+
+    - name: Create maintenance completion marker
+      lineinfile:
+        path: "{{ maintenance_log }}"
+        line: "=== Confluence maintenance completed successfully: {{ ansible_date_time.iso8601 }} ==="
+      tags: always

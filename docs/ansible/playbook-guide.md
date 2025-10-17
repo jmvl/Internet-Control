@@ -98,6 +98,35 @@ Email servers can fail silently - mail queues back up, SSL certificates expire, 
 - Every Sunday at 4 AM: Full mail maintenance (10-15 minutes)
 - No daily maintenance needed (mail services are stable when properly configured)
 
+### WireGuard VPN Server Maintenance ✨ **NEW**
+**File**: `wireguard-maintenance.yml`
+**Target**: WireGuard VPN server (wg.accelior.com at 135.181.154.169)
+
+**What this playbook solves**:
+Your WireGuard VPN server runs 24/7 on a cloud server, handling secure remote access for multiple clients. Without maintenance, Docker logs fill up disk space, security updates get missed, and you have no backup if something breaks.
+
+**What it does for you**:
+- **Prevents service failures**: Keeps WireGuard Easy container healthy and responsive
+- **Frees up disk space**: Rotates and truncates Docker container logs automatically
+- **Keeps system secure**: Installs Ubuntu security updates and Docker image updates
+- **Protects your configuration**: Creates daily backups of all VPN configs, client data, and keys (90-day retention)
+- **Health monitoring**: Verifies WireGuard interface is up, peers are connected, and ports are listening
+- **Zero-downtime updates**: Only restarts container when Docker image actually changes
+- **Firewall verification**: Ensures UFW rules allow VPN traffic and web UI access
+
+**When to use manually**:
+- When VPN clients can't connect or experience issues
+- Before making configuration changes to WireGuard Easy
+- If web UI becomes unresponsive
+- After adding many new clients (verify backup includes them)
+- When investigating connectivity or performance problems
+- Before cloud server maintenance or reboots
+
+**Automated schedule**:
+- Every night at 3:30 AM: Log rotation only (30 seconds, no service interruption)
+- Every Sunday at 5:00 AM: Full maintenance with updates (2-5 minutes, possible brief restart)
+- First Sunday of month at 5:30 AM: Comprehensive maintenance with Docker cleanup (5-10 minutes)
+
 ## Application Container Maintenance
 
 ### JIRA System Maintenance
