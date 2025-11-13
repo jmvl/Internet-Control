@@ -16,13 +16,12 @@ Radicale is a CalDAV/CardDAV server providing calendar and contact synchronizati
 
 ### Network Configuration
 ```
-External Traffic Flow (Primary):
+External Traffic Flow (Production):
 Internet → Dynamic DNS → OPNsense (WAN:443) → NPM (192.168.1.9:443) → Radicale Container (192.168.1.30:5232)
 Domain: radicale.home.accelior.com
 
-Legacy Path (Alternative):
-Internet → Dynamic DNS → OPNsense (WAN:443) → NPM (192.168.1.9:443) → Hestia Nginx (192.168.1.30:443/radicale/) → Radicale Container
-Domain: mail.accelior.com/radicale/.web/
+⚠️ Note: Path-based routing via mail.accelior.com/radicale/ is NOT configured.
+Always use the production subdomain: radicale.home.accelior.com
 ```
 
 ### Port Mapping
@@ -35,14 +34,11 @@ Domain: mail.accelior.com/radicale/.web/
 ### Domain Structure
 ```
 Primary Domain:
-radicale.home.accelior.com (Production subdomain)
+radicale.home.accelior.com (Production subdomain - ONLY supported method)
 
 DNS Records (accelior.com zone):
 ├── home.accelior.com           → A <WAN IP> (Dynamic DNS, TTL: 30s)
 └── radicale.home.accelior.com  → CNAME home.accelior.com
-
-Legacy Access:
-├── mail.accelior.com/radicale/.web/ (Path-based routing via Hestia Nginx)
 ```
 
 ### Dynamic DNS Configuration
@@ -88,10 +84,12 @@ Last Updated: October 9, 2025
 ```
 
 ### Service Endpoints
-- **Primary (Production)**: `https://radicale.home.accelior.com/.web/`
-- **Direct Access**: `http://192.168.1.30:5232/.web/` (internal only)
-- **Legacy Path**: `https://mail.accelior.com/radicale/.web/` (path-based routing)
-- **Authentication**: HTTP Basic Auth (no authentication on direct access)
+- **Production URL (REQUIRED)**: `https://radicale.home.accelior.com/.web/`
+- **Direct Access (Internal)**: `http://192.168.1.30:5232/.web/` (troubleshooting only)
+- **Authentication**: HTTP Basic Auth (optional on production, not required on direct access)
+
+⚠️ **Important**: Path-based routing (`mail.accelior.com/radicale/`) is NOT available.
+The nginx location block shown below is documentation only and not deployed.
 
 ## Authentication & Security
 
@@ -115,25 +113,28 @@ Access-Control-Expose-Headers: Etag, Preference-Applied, Vary
 - **Additional Security Options**: None configured (potential improvement area)
 
 ## Nginx Proxy Configuration
-Created: 18th July 2025
-http://192.168.1.30:5232
-Let's Encrypt
-Public
- Online
-### Internal Nginx Configuration (192.168.1.30)
-```nginx
-# Proxy configuration in Hestia Nginx
-location /radicale/ {
-    proxy_pass http://localhost:5232/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
 
-    # Authentication required
-    auth_basic "Radicale - Password Required";
-    auth_basic_user_file /home/accelior/conf/mail/.htpasswd;
-}
+⚠️ **Status**: Path-based routing is NOT configured
+**Reason**: Direct subdomain access via NPM is simpler and more maintainable
+
+### Internal Nginx Configuration (192.168.1.30) - NOT DEPLOYED
+The following configuration was considered but NOT implemented:
+```nginx
+# ❌ THIS CONFIGURATION IS NOT ACTIVE ❌
+# Path-based routing is not configured
+# Use radicale.home.accelior.com instead
+
+# location /radicale/ {
+#     proxy_pass http://localhost:5232/;
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Real-IP $remote_addr;
+#     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#     proxy_set_header X-Forwarded-Proto $scheme;
+#
+#     # Authentication required
+#     auth_basic "Radicale - Password Required";
+#     auth_basic_user_file /home/accelior/conf/mail/.htpasswd;
+# }
 ```
 
 ### NPM Configuration (192.168.1.9)
@@ -147,14 +148,14 @@ location /radicale/ {
 - **SSL Certificate**: Let's Encrypt (npm-49)
 - **Configuration**: `/data/nginx/proxy_host/36.conf`
 
-**Legacy Proxy Host (mail.accelior.com):**
+**Mail Domain Proxy (mail.accelior.com):**
 - **ID**: 18
 - **Domain**: mail.accelior.com
 - **Forward Scheme**: HTTPS
 - **Forward Host**: 192.168.1.30
 - **Forward Port**: 443
 - **SSL Certificate**: Let's Encrypt (npm-16)
-- **Note**: Requires Hestia Nginx to proxy /radicale/ path
+- **Purpose**: Webmail access only (does NOT include /radicale/ path routing)
 
 ## Client Configuration
 
@@ -166,10 +167,8 @@ Port: 443 (HTTPS)
 SSL/TLS: Required
 Discovery: Automatic via .well-known endpoints
 
-Alternative (Legacy):
-Server URL: https://mail.accelior.com/radicale/
-Authentication: HTTP Basic Auth (required)
-Credentials: /home/accelior/conf/mail/.htpasswd
+⚠️ Note: Only the subdomain URL above is supported.
+Path-based routing via mail.accelior.com/radicale/ is NOT available.
 ```
 
 ### Supported Clients
@@ -371,7 +370,7 @@ ssh root@pve2 'pct exec 130 -- docker inspect radicale > /root/radicale-config.j
 ### Potential Improvements
 1. **Container Security**: Add security options (no-new-privileges, capability dropping)
 2. **Rate Limiting**: Implement rate limiting for CalDAV endpoints
-3. **Monitoring**: Add to Uptime Kuma for service monitoring
+3. ✅ **Monitoring**: Added to Uptime Kuma (Monitor ID: 38) - Completed 2025-10-18
 4. **Caching**: Implement nginx caching for static resources
 
 ## Security Considerations
@@ -418,10 +417,10 @@ ssh root@pve2 'pct exec 130 -- docker inspect radicale > /root/radicale-config.j
 ## Future Enhancements
 
 ### Planned Improvements
-1. **NPM Configuration**: Add dedicated proxy host for radicale.acmea.tech
-2. **Monitoring Integration**: Add to existing Uptime Kuma setup
-3. **Security Hardening**: Implement container security best practices
-4. **Documentation**: Create client configuration guides
+1. ✅ **Monitoring Integration**: Added to Uptime Kuma (2025-10-18)
+2. **Security Hardening**: Implement container security best practices
+3. **Documentation**: Create client configuration guides
+4. **Authentication**: Consider enabling authentication for production use
 
 ### Scalability Considerations
 - **Multi-domain Support**: Easy addition of new domains
@@ -432,6 +431,13 @@ ssh root@pve2 'pct exec 130 -- docker inspect radicale > /root/radicale-config.j
 ---
 
 ## Change Log
+
+### Version 2.1 - October 18, 2025
+- ✅ **Monitoring Added**: Integrated with Uptime Kuma (Monitor ID: 38)
+- ⚠️ **Documentation Correction**: Removed references to non-existent path-based routing
+- **Clarification**: Confirmed `radicale.home.accelior.com` is the ONLY supported access method
+- **Status**: Production URL `https://radicale.home.accelior.com/.web/` verified working
+- **Container**: Healthy, 8 days uptime as of 2025-10-18
 
 ### Version 2.0 - October 9, 2025
 - Updated to Radicale 3.5.7.0 (from 3.5.4.0)
@@ -444,11 +450,11 @@ ssh root@pve2 'pct exec 130 -- docker inspect radicale > /root/radicale-config.j
 
 ### Version 1.0 - September 18, 2025
 - Initial documentation
-- Path-based routing via mail.accelior.com/radicale/
+- ~~Path-based routing via mail.accelior.com/radicale/~~ (Never actually configured)
 - Container version 3.5.4.0
 
 ---
 
-**Last Updated**: October 9, 2025
-**Document Version**: 2.0
+**Last Updated**: October 18, 2025
+**Document Version**: 2.1
 **Maintainer**: Infrastructure Team

@@ -19,7 +19,39 @@ This repository contains a comprehensive enterprise-grade home network infrastru
 All infrastructure services are documented in organized subdirectories:
 - `/docs/` - Main documentation hub with service-specific subdirectories
 - `/docs/OPNsense/`, `/docs/Supabase/`, `/docs/docker/` etc. - Service-specific docs
+- `/docs/infrastructure-db/` - **SQLite Infrastructure Database** - Single source of truth for infrastructure inventory
+- `/docs/troubleshooting/` - **Maintenance & Issue Tracking** - Timestamped troubleshooting logs and resolutions
 - **Discovery Protocol**: When encountering undocumented services, create comprehensive technical documentation in the appropriate `/docs/` subdirectory
+- **Maintenance Protocol**: When performing troubleshooting or maintenance tasks, document findings in `/docs/troubleshooting/` with format: `<issue-description>-YYYY-MM-DD.md`
+
+### Infrastructure Database (SQLite)
+**CRITICAL - Always check the infrastructure database first**:
+- **Database Location**: `/Users/jm/Codebase/internet-control/infrastructure-db/infrastructure.db`
+- **Purpose**: Centralized infrastructure inventory with automated discovery
+- **Contains**:
+  - 40+ Docker containers across 2 hosts (192.168.1.20, 192.168.1.9)
+  - 15+ physical/virtual hosts with resource tracking
+  - 23+ Docker networks with subnet information
+  - 50+ services with health monitoring
+  - Complete dependency mapping
+- **Query Examples**:
+  ```bash
+  # Quick container inventory
+  cd /Users/jm/Codebase/internet-control/infrastructure-db
+  sqlite3 infrastructure.db "SELECT h.hostname, dc.container_name, dc.status FROM docker_containers dc JOIN hosts h ON dc.docker_host_id = h.id WHERE dc.status = 'running';"
+
+  # Network topology
+  sqlite3 infrastructure.db "SELECT network_name, subnet, gateway FROM docker_networks WHERE subnet IS NOT NULL;"
+
+  # Service dependencies
+  sqlite3 infrastructure.db ".read queries/dependency_analysis.sql"
+  ```
+- **When to use**: ALWAYS query this database first when asked about:
+  - Docker containers and their status
+  - Network topology and IP allocations
+  - Service dependencies and impact analysis
+  - Infrastructure inventory questions
+- **Documentation**: See `/docs/infrastructure-db/README.md` for complete schema and usage
 
 ### Confluence Documentation Server
 **IMPORTANT - Atlassian MCP Configuration**:
@@ -112,6 +144,31 @@ Internet → [OpenWrt] → [OPNsense] → [Pi-hole] → LAN Clients
 - **SQM Configuration**: Verify with `uci show sqm` and `/etc/init.d/sqm status`
 - **Cron Scheduling**: Test with `crontab -l` and `logread | grep "Multi-WiFi-Throttle"`
 - **UCI Persistence**: Confirm changes with `uci commit` and router reboot testing
+
+## Cloudflare DNS Management
+**IMPORTANT - flarectl CLI Available**:
+- **Tool**: flarectl version dev installed at `/opt/homebrew/bin/flarectl`
+- **Account**: jmvl@accelior.com (ACMEA tech account: c115f051a956d0c2582963d1caf4884b)
+- **API Token**: Configured in `.env` as `CF_API_TOKEN`
+- **CRITICAL**: ALWAYS use flarectl for DNS operations - DO NOT provide manual instructions
+- **Common Commands**:
+  ```bash
+  # Set token (if not in .env)
+  export CF_API_TOKEN="RZ5klBDFKSUqBSnb8lJgzuUzwbh4v5Yd8UwgpNzA"
+
+  # List zones
+  flarectl zone list
+
+  # List DNS records
+  flarectl dns list --zone acmea.tech
+
+  # Create CNAME record with proxy
+  flarectl dns create --zone acmea.tech --name subdomain --type CNAME --content target.domain.com --proxy
+
+  # Delete DNS record
+  flarectl dns delete --zone acmea.tech --id <record-id>
+  ```
+- **Note**: Wrangler v4.42.0 is also available but only supports Workers/Pages, not DNS
 
 ## Tooling for Shell Interactions
 Use modern CLI tools for efficient shell operations:
