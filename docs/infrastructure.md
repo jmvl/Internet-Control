@@ -185,6 +185,14 @@ The OpenWrt router operates with a **4-radio setup** providing comprehensive wir
 - **Portainer** (ports 8000/9443) - Docker container management interface
 - **Portainer Agent** (port 9001) - Container monitoring agent
 
+**Bookmark Management**:
+- **Linkwarden** (port 3002) - Self-hosted collaborative bookmark manager
+  - **Stack Components**: Linkwarden + PostgreSQL 16 + MeiliSearch v1.12.8
+  - **Public Access**: https://link.acmea.tech
+  - **Tailscale Access**: Connect to pve2 Tailscale (100.102.0.120), then access http://192.168.1.20:3002
+  - **Installation Path**: `/opt/linkwarden`
+  - **Documentation**: `/docs/linkwarden/`
+
 #### OMV Docker Container Services (OpenMediaVault Host):
 **Content Management & Library**:
 - **Calibre** (ports 8082/8083) - E-book library management and conversion
@@ -203,6 +211,16 @@ The OpenWrt router operates with a **4-radio setup** providing comprehensive wir
 
 **File Synchronization**:
 - **Syncthing** (ports 8384/22000/21027) - Decentralized file synchronization
+
+**Bookmark Management**:
+- **Linkwarden** (port 3002) - Self-hosted collaborative bookmark manager
+  - **Container**: CT 111 (docker-debian) on 192.168.1.20
+  - **Stack**: Linkwarden + PostgreSQL 16 + MeiliSearch v1.12.8
+  - **Public URL**: https://link.acmea.tech (via Nginx Proxy Manager)
+  - **Internal Access**: http://192.168.1.20:3002
+  - **Tailscale Access**: Via pve2 (100.102.0.120) → LAN → 192.168.1.20:3002
+  - **Features**: Full-text search, webpage archiving, screenshots, collaborative sharing
+  - **Status**: Deployed and healthy (2025-10-19)
 
 **Monitoring & Management**:
 - **Uptime Kuma** (port 3010) - Service uptime monitoring and alerting
@@ -546,6 +564,26 @@ RAID Mirror Structure:
 - **Pi-hole**: JSON API for statistics and control
 - **OpenWrt**: RPC API for configuration
 - **OMV NAS**: REST API for storage management and monitoring
+
+### Tailscale Remote Access:
+The Proxmox host (pve2) is connected to Tailscale network, enabling secure remote access to all LAN resources:
+
+- **pve2 Tailscale IP**: 100.102.0.120
+- **Access Pattern**: Connect to Tailscale → SSH to pve2 (100.102.0.120) → Access any LAN resource
+- **Example Commands**:
+  ```bash
+  # SSH to pve2 via Tailscale
+  ssh root@100.102.0.120
+
+  # Access LAN services from pve2
+  curl http://192.168.1.20:3002  # Linkwarden
+  curl http://192.168.1.9:3010   # Uptime Kuma
+  curl http://192.168.1.5/admin  # Pi-hole
+
+  # Execute commands in containers
+  pct exec 111 -- docker compose ps  # Check linkwarden status
+  ```
+- **Benefits**: Secure encrypted access to entire home network from anywhere without exposing services to internet
 
 ## Monitoring & Logging
 
