@@ -22,22 +22,63 @@ All infrastructure services are documented in organized subdirectories:
 - `/docs/infrastructure-db/` - **SQLite Infrastructure Database** - Single source of truth for infrastructure inventory
 - `/docs/troubleshooting/` - **Maintenance & Issue Tracking** - Timestamped troubleshooting logs and resolutions
 - **Discovery Protocol**: When encountering undocumented services, create comprehensive technical documentation in the appropriate `/docs/` subdirectory
-- **Maintenance Protocol**: When performing troubleshooting or maintenance tasks, document findings in `/docs/troubleshooting/` with format: `<issue-description>-YYYY-MM-DD.md`
 
-### Infrastructure Database (SQLite)
-**CRITICAL - Always check the infrastructure database first**:
+### Documentation Naming Conventions
+
+**Troubleshooting & Incident Logs** (`/docs/troubleshooting/`):
+- **Format**: `YYYY-MM-DD-<issue-description>.md` (datestamp first for chronological sorting)
+- **Use for**: System-wide issues, incidents, cross-service problems, security events
+- **Examples**: `2025-01-02-pve2-crypto-miner-incident.md`, `2025-12-10-pihole-sysctl-crash.md`
+
+**Service-Specific Documentation** (`/docs/<service>/`):
+- **Format**: `<service>-<event-type>-YYYY-MM-DD.md` for dated events, or descriptive names for reference docs
+- **Use for**: Service upgrades, migrations, configuration changes specific to one service
+- **Examples**: `seafile-13-upgrade-2025-12-22.md`, `n8n-supabase-to-local-postgres-migration-2025-11-26.md`
+
+**When to Use Which**:
+| Scenario | Location |
+|----------|----------|
+| Multi-service outage | `/docs/troubleshooting/` |
+| Security incident | `/docs/troubleshooting/` |
+| Service upgrade | `/docs/<service>/` |
+| Service-specific bug fix | `/docs/<service>/` |
+| Infrastructure-wide issue | `/docs/troubleshooting/` |
+
+### Infrastructure Database (SQLite) - READ AND UPDATE
+**CRITICAL - This is the single source of truth for infrastructure inventory**:
 - **Database Location**: `/Users/jm/Codebase/internet-control/infrastructure-db/infrastructure.db`
-- **Purpose**: Centralized infrastructure inventory with automated discovery
-- **Contains**:
+- **Schema Reference**: `/Users/jm/Codebase/internet-control/infrastructure-db/schema.sql`
+- **Purpose**: Centralized infrastructure inventory - **Claude MUST read AND update this database**
+- **Last Updated**: 2025-11-26 (n8n PostgreSQL migration)
+
+**MANDATORY: When making infrastructure changes, UPDATE the database**:
+- Adding/removing Docker containers → UPDATE `docker_containers` table
+- Adding/removing services → UPDATE `services` table
+- Changing service dependencies → UPDATE `service_dependencies` table
+- Network changes → UPDATE `docker_networks` or `networks` tables
+- Host changes → UPDATE `hosts` table
+
+**Contains**:
   - 40+ Docker containers across 2 hosts (192.168.1.20, 192.168.1.9)
   - 15+ physical/virtual hosts with resource tracking
   - 23+ Docker networks with subnet information
-  - 50+ services with health monitoring
-  - Complete dependency mapping
-- **Query Examples**:
+  - 60+ services with health monitoring
+  - Complete dependency mapping (including n8n → n8n-postgres)
+
+**Key Tables**:
+| Table | Purpose |
+|-------|---------|
+| `hosts` | Physical servers, VMs, LXC containers, Docker hosts |
+| `docker_containers` | Container inventory with image, status, ports, env vars |
+| `docker_networks` | Docker network topology with subnets |
+| `services` | Application services with health status |
+| `service_dependencies` | Service-to-service dependency graph |
+
+**Query Examples**:
   ```bash
-  # Quick container inventory
   cd /Users/jm/Codebase/internet-control/infrastructure-db
+
+  # Quick container inventory
   sqlite3 infrastructure.db "SELECT h.hostname, dc.container_name, dc.status FROM docker_containers dc JOIN hosts h ON dc.docker_host_id = h.id WHERE dc.status = 'running';"
 
   # Network topology
@@ -46,12 +87,42 @@ All infrastructure services are documented in organized subdirectories:
   # Service dependencies
   sqlite3 infrastructure.db ".read queries/dependency_analysis.sql"
   ```
-- **When to use**: ALWAYS query this database first when asked about:
+
+**Update Examples**:
+  ```bash
+  cd /Users/jm/Codebase/internet-control/infrastructure-db
+
+  # Add new container
+  sqlite3 infrastructure.db "INSERT INTO docker_containers (docker_host_id, container_id, container_name, image, status, health_status) VALUES (17, 'container-id', 'my-container', 'image:tag', 'running', 'healthy');"
+
+  # Update container status
+  sqlite3 infrastructure.db "UPDATE docker_containers SET status = 'stopped', updated_at = CURRENT_TIMESTAMP WHERE container_name = 'my-container';"
+
+  # Add service dependency
+  sqlite3 infrastructure.db "INSERT INTO service_dependencies (dependent_service_id, dependency_service_id, dependency_type) VALUES (19, 61, 'hard');"
+  ```
+
+- **When to READ**: ALWAYS query this database first when asked about:
   - Docker containers and their status
   - Network topology and IP allocations
   - Service dependencies and impact analysis
   - Infrastructure inventory questions
-- **Documentation**: See `/docs/infrastructure-db/README.md` for complete schema and usage
+
+- **When to UPDATE**: ALWAYS update this database after:
+  - Adding/removing/migrating containers or services
+  - Changing service configurations or dependencies
+  - Infrastructure maintenance that changes state
+  - Any change documented in `/docs/` should also update the DB
+
+- **n8n Quick Query**:
+  ```bash
+  # n8n stack status
+  sqlite3 infrastructure.db "SELECT dc.container_name, dc.status, dc.health_status FROM docker_containers dc WHERE dc.container_name LIKE '%n8n%';"
+
+  # n8n service dependencies
+  sqlite3 infrastructure.db "SELECT s1.service_name, sd.dependency_type, s2.service_name as depends_on FROM services s1 JOIN service_dependencies sd ON s1.id = sd.dependent_service_id JOIN services s2 ON sd.dependency_service_id = s2.id WHERE s1.service_name LIKE '%n8n%';"
+  ```
+- **Full Documentation**: See `/Users/jm/Codebase/internet-control/infrastructure-db/README.md` for complete schema and usage
 
 ### Confluence Documentation Server
 **IMPORTANT - Atlassian MCP Configuration**:
@@ -124,7 +195,8 @@ Internet → [OpenWrt] → [OPNsense] → [Pi-hole] → LAN Clients
 - **Realtime Service** (WebSocket subscriptions) - ⚠️ Currently unhealthy
 
 **Development & Automation**:
-- **n8n** (port 5678) - Workflow automation platform
+- **n8n** (port 5678) - Workflow automation platform with local PostgreSQL (migrated from Supabase 2025-11-26)
+- **n8n-postgres** - PostgreSQL 16-alpine database for n8n (local container, not Supabase)
 - **Gotenberg** - Document conversion service
 - **Analytics Stack** (Logflare, Vector, ImgProxy)
 

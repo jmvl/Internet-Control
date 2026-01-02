@@ -2,40 +2,42 @@
 
 ## Overview
 
-This directory contains comprehensive documentation for the n8n workflow automation platform deployed on PCT Container 100 (192.168.1.20). The service has been optimized for memory efficiency and production stability following PCT optimization best practices.
+This directory contains comprehensive documentation for the n8n workflow automation platform deployed on LXC Container 111 (docker-debian) on pve2. The service uses a self-hosted PostgreSQL database (migrated from Supabase on 2025-11-26) and has been optimized for memory efficiency and production stability.
 
 ## Service Status
 
 - **Status**: ✅ **Production Active**
-- **Location**: PCT Container 100 (192.168.1.20)
+- **Location**: LXC Container 111 (docker-debian) on pve2
 - **Public URL**: https://n8n.accelior.com
-- **Database**: External PostgreSQL (Supabase)
-- **Last Optimization**: September 19, 2025
+- **Database**: Local PostgreSQL (n8n-postgres container)
+- **n8n Version**: 1.113.1
+- **PostgreSQL Version**: 16-alpine
+- **Last Migration**: November 26, 2025 (Supabase → Local PostgreSQL)
 
 ## Quick Reference
 
 ### Service Management
 ```bash
 # Check service status
-ssh root@192.168.1.20 'docker ps | grep n8n'
+ssh root@pve2 'pct exec 111 -- docker compose -f /home/n8n_compose/docker-compose.yml ps'
 
 # View resource usage
-ssh root@192.168.1.20 'docker stats n8n-n8n-1 --no-stream'
+ssh root@pve2 'pct exec 111 -- docker stats n8n-n8n-1 n8n-postgres --no-stream'
 
 # Restart services
-ssh root@192.168.1.20 'cd /root/n8n && docker compose restart'
+ssh root@pve2 'pct exec 111 -- docker compose -f /home/n8n_compose/docker-compose.yml restart'
 
 # View logs
-ssh root@192.168.1.20 'docker logs n8n-n8n-1 -f'
+ssh root@pve2 'pct exec 111 -- docker logs n8n-n8n-1 -f'
 ```
 
 ### Health Check
 ```bash
 # Service accessibility
-curl -I https://n8n.accelior.com/
+curl -s https://n8n.accelior.com/healthz
 
-# Database connectivity
-ssh root@192.168.1.20 'docker exec n8n-n8n-1 nc -zv aws-0-eu-central-1.pooler.supabase.com 6543'
+# Database connectivity (local postgres)
+ssh root@pve2 'pct exec 111 -- docker exec n8n-postgres pg_isready -U n8n -d n8n'
 ```
 
 ## Documentation Structure
@@ -64,6 +66,14 @@ ssh root@192.168.1.20 'docker exec n8n-n8n-1 nc -zv aws-0-eu-central-1.pooler.su
 - Emergency recovery procedures
 - Monitoring and alerting setup
 
+### 📖 [Database Migration (2025-11-26)](./n8n-supabase-to-local-postgres-migration-2025-11-26.md)
+**Purpose**: Migration from Supabase to local PostgreSQL
+**Use Cases**:
+- Understanding current database architecture
+- Database backup and restore procedures
+- Rollback to Supabase if needed
+- Database management commands
+
 ## Current Configuration Highlights
 
 ### Resource Optimization (Applied 2025-09-19)
@@ -74,7 +84,7 @@ ssh root@192.168.1.20 'docker exec n8n-n8n-1 nc -zv aws-0-eu-central-1.pooler.su
 - **Gotenberg Memory**: 512MB (resolved restart issues)
 
 ### Key Features
-- **External Database**: Supabase PostgreSQL with SSL
+- **Local Database**: Self-hosted PostgreSQL 16 (migrated from Supabase 2025-11-26)
 - **Community Packages**: Enabled for AI tool usage
 - **Automatic Cleanup**: Execution data pruning enabled
 - **Production Mode**: Optimized Node.js environment
@@ -93,7 +103,7 @@ ssh root@192.168.1.20 'docker exec n8n-n8n-1 nc -zv aws-0-eu-central-1.pooler.su
 - **Startup Time**: ~30 seconds
 - **Response Time**: <500ms typical
 - **Concurrent Workflows**: 100-500 supported
-- **Database Latency**: <50ms to Supabase
+- **Database Latency**: <1ms (local PostgreSQL)
 
 ## Monitoring and Maintenance
 
@@ -119,14 +129,14 @@ echo "*/15 * * * * /root/scripts/n8n-monitor.sh" | crontab -
 ## Integration Points
 
 ### Related Services
-- **Supabase**: External database and authentication
+- **PostgreSQL**: Local database container (n8n-postgres)
 - **Reverse Proxy**: HTTPS termination and routing
 - **Pi-hole**: DNS resolution and filtering
 - **Backup System**: Proxmox-based backup strategy
 
 ### Network Dependencies
-- **Outbound**: Supabase database connection (port 6543)
 - **Inbound**: Web interface (port 5678)
+- **Internal**: PostgreSQL database (port 5432, container network)
 - **Internal**: Gotenberg PDF service communication
 
 ## Security Considerations
@@ -134,7 +144,7 @@ echo "*/15 * * * * /root/scripts/n8n-monitor.sh" | crontab -
 ### Access Control
 - **Web Interface**: n8n built-in authentication
 - **API Access**: API key authentication
-- **Database**: SSL-encrypted connection to Supabase
+- **Database**: Local container network (isolated)
 - **Network**: Firewall rules and reverse proxy
 
 ### Data Protection
@@ -180,11 +190,11 @@ echo "*/15 * * * * /root/scripts/n8n-monitor.sh" | crontab -
 ### Update Procedures
 ```bash
 # Update n8n container image
-ssh root@192.168.1.20 'cd /root/n8n && docker compose pull'
-ssh root@192.168.1.20 'cd /root/n8n && docker compose up -d'
+ssh root@pve2 'pct exec 111 -- docker compose -f /home/n8n_compose/docker-compose.yml pull'
+ssh root@pve2 'pct exec 111 -- docker compose -f /home/n8n_compose/docker-compose.yml up -d'
 
 # Verify update
-ssh root@192.168.1.20 'docker logs n8n-n8n-1 --tail 20'
+ssh root@pve2 'pct exec 111 -- docker logs n8n-n8n-1 --tail 20'
 ```
 
 ## Related Documentation
@@ -202,7 +212,7 @@ ssh root@192.168.1.20 'docker logs n8n-n8n-1 --tail 20'
 ---
 
 **Documentation Status**: ✅ Complete
-**Last Review**: September 19, 2025
-**Next Review**: October 19, 2025
+**Last Review**: November 26, 2025
+**Next Review**: December 26, 2025
 **Maintainer**: Infrastructure Team
-**Version**: 1.0.0
+**Version**: 2.0.0
