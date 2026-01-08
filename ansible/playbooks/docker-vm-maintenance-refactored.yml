@@ -1,0 +1,58 @@
+---
+# Docker VM Maintenance Playbook (Refactored)
+# Target: PCT-111 (192.168.1.20) - docker-debian on pve2
+# Purpose: Comprehensive Docker host maintenance with role-based architecture
+# Schedule: Weekly full maintenance, monthly comprehensive with fstrim
+# Critical: fstrim is ESSENTIAL for LVM thin pool space reclamation
+#
+# Usage:
+#   ansible-playbook docker-vm-maintenance-refactored.yml
+#   ansible-playbook docker-vm-maintenance-refactored.yml --tags logs
+#   ansible-playbook docker-vm-maintenance-refactored.yml --tags fstrim
+#   ansible-playbook docker-vm-maintenance-refactored.yml --extra-vars "comprehensive_maintenance=true"
+
+- name: Docker VM Maintenance
+  hosts: docker-vm
+  become: yes
+
+  vars:
+    service_name: "Docker VM"
+    maintenance_log: "/var/log/ansible-docker-maintenance.log"
+    log_retention_days: 7
+
+  pre_tasks:
+    - name: Display maintenance mode
+      debug:
+        msg:
+          - "============================================"
+          - "Docker VM Maintenance Mode"
+          - "============================================"
+          - "Comprehensive: {{ comprehensive_maintenance | default(false) }}"
+          - "Tags: {{ ansible_run_tags }}"
+          - "⚠️  CRITICAL: fstrim is essential for thin pool health!"
+          - "============================================"
+      tags: always
+
+  roles:
+    # Common maintenance tasks
+    - role: common
+      tags: ['always', 'common']
+
+    # Docker-specific tasks
+    - role: docker
+      tags: ['always', 'docker']
+
+  post_tasks:
+    - name: Display fstrim warning
+      debug:
+        msg:
+          - "============================================"
+          - "⚠️  IMPORTANT: fstrim is CRITICAL for thin pool health!"
+          - "Without fstrim, deleted files never free thin pool space."
+          - "============================================"
+      tags: always
+
+    - name: Display completion message
+      debug:
+        msg: "✅ Docker VM maintenance completed successfully"
+      tags: always

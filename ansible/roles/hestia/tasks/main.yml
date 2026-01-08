@@ -1,0 +1,273 @@
+---
+# HestiaCP service-specific maintenance tasks
+
+# ========================================
+# PHASE 1: MAIL FIXES (January 2026)
+# ========================================
+
+- name: Import Dovecot cache management tasks
+  import_tasks: dovecot_cache.yml
+  tags:
+    - logs
+    - dovecot
+    - cache
+
+- name: Import Exim4 configuration management tasks
+  import_tasks: exim_config.yml
+  tags:
+    - config
+    - exim
+
+- name: Import monitoring and alerting tasks
+  import_tasks: monitoring.yml
+  tags:
+    - monitoring
+    - scripts
+    - cron
+
+# ========================================
+# HESTIA-SPECIFIC LOG CLEANUP
+# ========================================
+
+- name: Find old HestiaCP logs (idempotent)
+  find:
+    paths: "{{ hestia_log_dir }}"
+    patterns: "*.log.*,*.gz"
+    age: "{{ log_retention_days }}d"
+  register: old_hestia_logs
+  ignore_errors: yes
+  tags: logs,hestia_logs
+
+- name: Remove old HestiaCP logs
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_hestia_logs.files }}"
+  when: old_hestia_logs.matched > 0
+  tags: logs,hestia_logs
+
+- name: Truncate large HestiaCP logs (idempotent)
+  shell: |
+    find {{ hestia_log_dir }} -name "*.log" -type f -size +{{ hestia_log_max_size }} -exec truncate -s {{ hestia_log_truncate_size }} {} \;
+  register: hestia_truncate
+  changed_when: hestia_truncate.rc == 0
+  ignore_errors: yes
+  tags: logs,hestia_logs
+
+# ========================================
+# APACHE LOG CLEANUP
+# ========================================
+
+- name: Find old Apache logs (idempotent)
+  find:
+    paths: "{{ hestia_apache_log_dir }}"
+    patterns: "*.log.*,*.gz,access.log.*,error.log.*"
+    age: "{{ log_retention_days }}d"
+  register: old_apache_logs
+  tags: logs,apache_logs
+
+- name: Remove old Apache logs
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_apache_logs.files }}"
+  when: old_apache_logs.matched > 0
+  tags: logs,apache_logs
+
+- name: Truncate large Apache logs (idempotent)
+  shell: |
+    find {{ hestia_apache_log_dir }} -name "*.log" -type f -size +{{ hestia_apache_log_max_size }} -exec truncate -s {{ hestia_apache_log_truncate_size }} {} \;
+  register: apache_truncate
+  changed_when: apache_truncate.rc == 0
+  tags: logs,apache_logs
+
+# ========================================
+# NGINX LOG CLEANUP
+# ========================================
+
+- name: Find old Nginx logs (idempotent)
+  find:
+    paths: "{{ hestia_nginx_log_dir }}"
+    patterns: "*.log.*,*.gz"
+    age: "{{ log_retention_days }}d"
+    recurse: yes
+  register: old_nginx_logs
+  tags: logs,nginx_logs
+
+- name: Remove old Nginx logs
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_nginx_logs.files }}"
+  when: old_nginx_logs.matched > 0
+  tags: logs,nginx_logs
+
+- name: Truncate large Nginx domain logs (idempotent)
+  shell: |
+    find {{ hestia_nginx_log_dir }}/domains -name "*.log" -type f -size +{{ hestia_nginx_log_max_size }} -exec truncate -s {{ hestia_nginx_log_truncate_size }} {} \; 2>/dev/null || true
+  register: nginx_truncate
+  changed_when: nginx_truncate.rc == 0
+  tags: logs,nginx_logs
+
+# ========================================
+# MAIL LOG CLEANUP
+# ========================================
+
+- name: Find old Exim4 logs (idempotent)
+  find:
+    paths: "{{ hestia_mail_log_dir }}"
+    patterns: "mainlog.*,rejectlog.*,paniclog.*"
+    age: "{{ log_retention_days }}d"
+  register: old_mail_logs
+  ignore_errors: yes
+  tags: logs,mail_logs
+
+- name: Remove old Exim4 logs
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_mail_logs.files }}"
+  when: old_mail_logs.matched > 0
+  tags: logs,mail_logs
+
+- name: Truncate large mail logs (idempotent)
+  shell: |
+    find {{ hestia_mail_log_dir }} -name "mainlog" -o -name "rejectlog" -type f -size +{{ hestia_mail_log_max_size }} -exec truncate -s {{ hestia_mail_log_truncate_size }} {} \;
+  register: mail_truncate
+  changed_when: mail_truncate.rc == 0
+  ignore_errors: yes
+  tags: logs,mail_logs
+
+# ========================================
+# MAIL QUEUE MANAGEMENT
+# ========================================
+
+- name: Check mail queue status (idempotent)
+  shell: exim4 -bpc
+  register: mail_queue_count
+  changed_when: false
+  tags: health,mail_queue
+
+- name: Check for frozen messages (idempotent)
+  shell: exim4 -bp | grep frozen | wc -l
+  register: frozen_count
+  changed_when: false
+  tags: health,mail_queue
+
+- name: Remove frozen messages older than 7 days
+  shell: |
+    exim4 -bp | grep frozen | awk '{print $3}' | xargs -I {} exim4 -Mrm {} 2>/dev/null || true
+  when: frozen_count.stdout | int > 0
+  register: frozen_removed
+  changed_when: frozen_removed.rc == 0
+  tags: health,mail_queue
+
+# ========================================
+# MAIL SERVICE HEALTH CHECKS (Idempotent)
+# ========================================
+
+- name: Ensure Exim4 service is running
+  systemd:
+    name: exim4
+    state: started
+    enabled: yes
+  tags: health,services
+
+- name: Ensure Dovecot service is running
+  systemd:
+    name: dovecot
+    state: started
+    enabled: yes
+  tags: health,services
+
+- name: Ensure SpamAssassin is enabled
+  systemd:
+    name: spamassassin
+    enabled: yes
+  ignore_errors: yes
+  tags: health,services
+
+- name: Ensure ClamAV is enabled
+  systemd:
+    name: clamav-daemon
+    enabled: yes
+  ignore_errors: yes
+  tags: health,services
+
+- name: Verify mail ports are listening (idempotent)
+  shell: |
+    netstat -tlnp | grep -E ':(25|587|465|143|993)' || \
+    ss -tlnp | grep -E ':(25|587|465|143|993)'
+  register: mail_ports
+  changed_when: false
+  ignore_errors: yes
+  tags: health,ports
+
+# ========================================
+# SSL CERTIFICATE MONITORING (Idempotent)
+# ========================================
+
+- name: Check SSL certificate expiration
+  shell: |
+    {% for domain in hestia_mail_domains %}
+    cert="/usr/local/hestia/data/users/*/ssl/mail.{{ domain }}.crt"
+    if [ -f $cert ]; then
+      days=$(openssl x509 -in $cert -noout -enddate | awk -F= '{print $2}' | xargs -I {} date -d {} +%s | awk -v now=$(date +%s) '{print int(($1-now)/86400)}')
+      echo "mail.{{ domain }}: $days days until expiration"
+    fi
+    {% endfor %}
+  register: ssl_status
+  changed_when: false
+  ignore_errors: yes
+  tags: health,ssl
+
+# ========================================
+# RADICALE CONTAINER CHECK (Idempotent)
+# ========================================
+
+- name: Check Radicale container status
+  script:
+    cmd: files/check-radicale.sh
+  register: radicale_status
+  changed_when: false
+  ignore_errors: yes
+  tags: health,containers
+
+# ========================================
+# COMPREHENSIVE MAINTENANCE (Monthly)
+# ========================================
+
+- name: Clean APT cache thoroughly (comprehensive only)
+  shell: |
+    apt-get clean
+    apt-get autoclean
+    rm -rf /var/cache/apt/archives/*.deb
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  register: apt_cache_clean
+  changed_when: apt_cache_clean.rc == 0
+  tags: comprehensive
+
+- name: Check and repair mail database (comprehensive only)
+  shell: |
+    /usr/local/hestia/bin/v-rebuild-mail-domains $(ls /usr/local/hestia/data/users/) 2>&1 || true
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  register: mail_db_rebuild
+  changed_when: mail_db_rebuild.rc == 0
+  ignore_errors: yes
+  tags: comprehensive
+
+- name: Update SpamAssassin rules (comprehensive only)
+  shell: sa-update && systemctl restart spamassassin
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  register: spamassassin_update
+  changed_when: spamassassin_update.rc == 0
+  ignore_errors: yes
+  tags: comprehensive
+
+- name: Update ClamAV definitions (comprehensive only)
+  shell: freshclam
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  register: clamav_update
+  changed_when: clamav_update.rc == 0
+  ignore_errors: yes
+  tags: comprehensive

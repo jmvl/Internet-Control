@@ -1,0 +1,9 @@
+# SMTP Relay Configuration
+# Deployed by Ansible - Hestia Mail Server Maintenance
+# Purpose: Global SMTP relay configuration for all domains using EDP.net relay service
+# Based on: /docs/hestia/hestia-mail-server-maintenance-intervention-2026-01-08.md
+
+host: {{ hestia_smtp_relay_host }}
+port: {{ hestia_smtp_relay_port }}
+user: {{ hestia_smtp_relay_user | default('') }}
+pass: {{ hestia_smtp_relay_pass | default('') }}

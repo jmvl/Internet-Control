@@ -1,0 +1,37 @@
+---
+# Handlers for Hestia Mail Server
+# These handlers are notified by tasks when configuration changes require service restarts
+
+- name: Update Exim4 configuration
+  ansible.builtin.command: update-exim4.conf
+  notify: Reload Exim4
+
+- name: Reload Exim4
+  ansible.builtin.systemd:
+    name: exim4
+    state: reloaded
+
+- name: Restart Exim4
+  ansible.builtin.systemd:
+    name: exim4
+    state: restarted
+
+- name: Reload Dovecot
+  ansible.builtin.systemd:
+    name: dovecot
+    state: reloaded
+
+- name: Restart Dovecot
+  ansible.builtin.systemd:
+    name: dovecot
+    state: restarted
+
+- name: Restart SpamAssassin
+  ansible.builtin.systemd:
+    name: spamassassin
+    state: restarted
+
+- name: Restart ClamAV
+  ansible.builtin.systemd:
+    name: clamav-daemon
+    state: restarted

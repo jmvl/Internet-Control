@@ -1,0 +1,58 @@
+---
+# HestiaCP maintenance role defaults
+
+hestia_service_name: "HestiaCP"
+hestia_maintenance_log: "/var/log/ansible-hestia-maintenance.log"
+
+# HestiaCP paths
+hestia_log_dir: "/var/log/hestia"
+hestia_apache_log_dir: "/var/log/apache2"
+hestia_nginx_log_dir: "/var/log/nginx"
+hestia_mail_log_dir: "/var/log/exim4"
+
+# Log size thresholds
+hestia_log_max_size: "100M"
+hestia_log_truncate_size: "50M"
+hestia_apache_log_max_size: "200M"
+hestia_apache_log_truncate_size: "100M"
+hestia_nginx_log_max_size: "100M"
+hestia_nginx_log_truncate_size: "50M"
+hestia_mail_log_max_size: "200M"
+hestia_mail_log_truncate_size: "100M"
+
+# Mail domains for SSL monitoring
+hestia_mail_domains:
+  - accelior.com
+  - vega-messenger.com
+  - acmea.tech
+
+# ========================================
+# Dovecot Cache Management (Phase 1)
+# ========================================
+
+# Dovecot memory limits (prevents "Cannot allocate memory" errors)
+hestia_dovecot_imap_vsz_limit: "3G"
+hestia_dovecot_pop3_vsz_limit: "2G"
+hestia_dovecot_default_vsz_limit: "3G"
+hestia_dovecot_process_limit: 256
+
+# Cache file thresholds
+hestia_dovecot_cache_warn_size_mb: 50
+hestia_dovecot_cache_max_size_mb: 100
+
+# ========================================
+# Exim4 Configuration (Phase 1)
+# ========================================
+
+# SMTP relay configuration (EDP.net)
+# Note: These default to empty strings, override with vault variables if needed
+hestia_smtp_relay_host: "{{ smtp_relay_credentials.host | default('relay.edpnet.be') }}"
+hestia_smtp_relay_port: "{{ smtp_relay_credentials.port | default(587) }}"
+hestia_smtp_relay_user: "{{ smtp_relay_credentials.user | default('') }}"
+hestia_smtp_relay_pass: "{{ smtp_relay_credentials.pass | default('') }}"
+
+# Exim4 configuration management
+hestia_exim_config_backup: true
+hestia_exim_test_routing_enabled: false
+hestia_exim_test_recipient: "jpvanlip@gmail.com"
+hestia_exim_test_sender: "jmvl@accelior.com"

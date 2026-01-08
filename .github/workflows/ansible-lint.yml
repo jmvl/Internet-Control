@@ -1,0 +1,97 @@
+---
+name: Ansible Lint
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-lint.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-lint.yml'
+
+jobs:
+  lint:
+    name: Lint Ansible Code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install linting dependencies
+        run: |
+          pip install ansible-lint yamllint ansible
+
+      - name: Run ansible-lint
+        working-directory: ./ansible
+        run: |
+          ansible-lint --force-color roles/ playbooks/ || {
+            echo "::warning::Ansible lint found issues. Review the output above."
+            exit 1
+          }
+
+      - name: Run yamllint
+        working-directory: ./ansible
+        run: |
+          yamllint -c .yamllint roles/ playbooks/ group_vars/ host_vars/ || {
+            echo "::warning::YAML lint found issues. Review the output above."
+            exit 1
+          }
+
+      - name: Check playbook syntax
+        working-directory: ./ansible
+        run: |
+          for playbook in playbooks/*.yml; do
+            echo "Checking syntax of $playbook..."
+            ansible-playbook "$playbook" --syntax-check || {
+              echo "::error::Syntax check failed for $playbook"
+              exit 1
+            }
+          done
+
+      - name: Validate vault encryption
+        working-directory: ./ansible
+        run: |
+          if [ -f group_vars/all/vault.yml ]; then
+            if grep -U $'\0' group_vars/all/vault.yml; then
+              echo "✅ Vault file is properly encrypted"
+            else
+              echo "::error::Vault file is not encrypted!"
+              exit 1
+            fi
+          else
+            echo "::warning::No vault file found at group_vars/all/vault.yml"
+          fi
+
+      - name: Check for hardcoded secrets
+        working-directory: ./ansible
+        run: |
+          # Search for potential hardcoded passwords/tokens
+          if grep -rE "(password|passwd|pwd|secret|token|api_key)\s*:\s*[\"']?[a-zA-Z0-9]{20,}" roles/ playbooks/ group_vars/ host_vars/ 2>/dev/null | \
+             grep -v "vault.yml" | \
+             grep -v "{{ " | \
+             grep -v ">>"; then
+            echo "::warning::Potential hardcoded secrets found. Review the output above."
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Ansible Lint Results :rocket:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ $? -eq 0 ]; then
+            echo "✅ All checks passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some checks failed. Review the logs above." >> $GITHUB_STEP_SUMMARY
+          fi

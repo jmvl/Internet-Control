@@ -1,0 +1,78 @@
+---
+# Monitoring & Alerting Tasks
+# Deploys automated monitoring scripts for Dovecot cache and Exim queue
+# Based on intervention: /docs/hestia/hestia-mail-server-maintenance-intervention-2026-01-08.md
+
+- name: Ensure monitoring scripts directory exists
+  file:
+    path: /usr/local/bin
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: monitoring,scripts
+
+- name: Deploy Dovecot cache cleanup script
+  copy:
+    src: dovecot-cache-cleanup.sh
+    dest: /usr/local/bin/dovecot-cache-cleanup.sh
+    owner: root
+    group: root
+    mode: '0755'
+  tags: monitoring,scripts,dovecot
+
+- name: Deploy Exim queue monitoring script
+  copy:
+    src: exim-queue-monitor.sh
+    dest: /usr/local/bin/exim-queue-monitor.sh
+    owner: root
+    group: root
+    mode: '0755'
+  tags: monitoring,scripts,exim
+
+- name: Ensure monitoring log directory exists
+  file:
+    path: /var/log
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: monitoring,logs
+
+- name: Configure Dovecot cache cleanup cron job (weekly)
+  cron:
+    name: "Dovecot cache cleanup"
+    cron_file: /etc/cron.d/dovecot-cache-cleanup
+    user: root
+    minute: '0'
+    hour: '3'
+    weekday: '0'
+    job: '/usr/local/bin/dovecot-cache-cleanup.sh'
+    state: present
+  tags: monitoring,cron,dovecot
+
+- name: Configure Exim queue monitoring cron job (every 15 minutes)
+  cron:
+    name: "Exim queue monitoring"
+    cron_file: /etc/cron.d/exim-queue-monitor
+    user: root
+    minute: '*/15'
+    job: '/usr/local/bin/exim-queue-monitor.sh'
+    state: present
+  tags: monitoring,cron,exim
+
+- name: Verify cron jobs are configured
+  shell: |
+    echo "=== Dovecot Cache Cleanup Cron ==="
+    cat /etc/cron.d/dovecot-cache-cleanup 2>/dev/null || echo "Not configured"
+    echo ""
+    echo "=== Exim Queue Monitor Cron ==="
+    cat /etc/cron.d/exim-queue-monitor 2>/dev/null || echo "Not configured"
+  register: cron_verification
+  changed_when: false
+  tags: monitoring,cron,verify
+
+- name: Display cron job configuration
+  debug:
+    msg: "{{ cron_verification.stdout_lines }}"
+  tags: monitoring,cron,verify

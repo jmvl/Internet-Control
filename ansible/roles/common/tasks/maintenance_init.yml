@@ -1,0 +1,36 @@
+---
+# Initialize maintenance session
+# Creates log entries and captures baseline metrics
+
+- name: Create maintenance log directory
+  file:
+    path: "{{ maintenance_log_dir }}"
+    state: directory
+    mode: '0755'
+  tags: always
+
+- name: Create maintenance log entry
+  lineinfile:
+    path: "{{ maintenance_log }}"
+    line: "=== {{ service_name | default('System') }} maintenance started: {{ ansible_date_time.iso8601 }} ==="
+    create: yes
+    mode: '0644'
+  tags: always
+
+- name: Capture disk usage before maintenance
+  shell: df -h / | tail -1
+  register: disk_usage_before
+  changed_when: false
+  tags: always
+
+- name: Check for available disk space warning
+  shell: df / | tail -1 | awk '{print $5}' | sed 's/%//'
+  register: disk_percent_before
+  changed_when: false
+  tags: always
+
+- name: Warn if disk space is critical
+  debug:
+    msg: "⚠️  CRITICAL: Disk usage is {{ disk_percent_before.stdout }}%"
+  when: disk_percent_before.stdout | int > disk_critical_percent
+  tags: always

@@ -1,0 +1,71 @@
+---
+# Generate maintenance completion report
+# Creates comprehensive summary of maintenance actions
+
+- name: Capture disk usage after maintenance
+  shell: df -h / | tail -1
+  register: disk_usage_after
+  changed_when: false
+  tags: always
+
+- name: Calculate space freed (idempotent)
+  shell: |
+    before=$(df / | tail -1 | awk '{print $3}')
+    after=$(df / | tail -1 | awk '{print $3}')
+    freed=$((before - after))
+    if [ $freed -lt 0 ]; then freed=0; fi
+    echo "${freed}K"
+  register: space_freed
+  changed_when: false
+  tags: always
+
+- name: Log maintenance results to file
+  blockinfile:
+    path: "{{ maintenance_log }}"
+    marker: "<!-- {mark} ANSIBLE MANAGED BLOCK {{ ansible_date_time.iso8601 }} -->"
+    block: |
+      Maintenance Summary:
+      - Date: {{ ansible_date_time.iso8601 }}
+      - Service: {{ service_name | default('System') }}
+      - Disk Usage Before: {{ disk_usage_before.stdout }}
+      - Disk Usage After: {{ disk_usage_after.stdout }}
+      - Space Freed: {{ space_freed.stdout }}
+      - System Updates: {{ apt_updates.changed | default(false) }}
+      - Journal Cleaned: {{ journal_cleanup.changed | default(false) }}
+      - Reboot Required: {{ 'YES' if (reboot_required is defined and reboot_required.stat.exists) else 'NO' }}
+      {% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}
+      - Comprehensive Mode: Enabled
+      {% endif %}
+    state: present
+  tags: always
+
+- name: Display maintenance summary
+  debug:
+    msg:
+      - "============================================"
+      - "{{ service_name | default('System') }} Maintenance Summary"
+      - "============================================"
+      - "Host: {{ ansible_hostname }}"
+      - "Date: {{ ansible_date_time.iso8601 }}"
+      - ""
+      - "DISK USAGE:"
+      - "  Before: {{ disk_usage_before.stdout }}"
+      - "  After:  {{ disk_usage_after.stdout }}"
+      - "  Space Freed: {{ space_freed.stdout }}"
+      - ""
+      - "SYSTEM UPDATES:"
+      - "  Updates Applied: {{ apt_updates.changed | default(false) }}"
+      - "  Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if (reboot_required is defined and reboot_required.stat.exists) else 'NO' }}"
+      - ""
+      - "LOG CLEANUP:"
+      - "  System Journals: {{ journal_cleanup.changed | default(false) }}"
+      - ""
+      - "{% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}COMPREHENSIVE MAINTENANCE:{% endif %}"
+      - "============================================"
+  tags: always
+
+- name: Create maintenance completion marker
+  lineinfile:
+    path: "{{ maintenance_log }}"
+    line: "=== {{ service_name | default('System') }} maintenance completed: {{ ansible_date_time.iso8601 }} ==="
+  tags: always

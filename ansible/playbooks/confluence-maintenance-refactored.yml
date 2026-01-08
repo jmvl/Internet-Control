@@ -1,0 +1,46 @@
+---
+# Confluence System Maintenance Playbook (Refactored)
+# Target: PCT-100 (192.168.1.21) - Confluence Container
+# Purpose: Comprehensive system maintenance with role-based architecture
+# Schedule: Weekly maintenance, monthly comprehensive
+#
+# Usage:
+#   ansible-playbook confluence-maintenance-refactored.yml
+#   ansible-playbook confluence-maintenance-refactored.yml --tags logs
+#   ansible-playbook confluence-maintenance-refactored.yml --extra-vars "comprehensive_maintenance=true"
+
+- name: Confluence System Maintenance
+  hosts: confluence
+  become: yes
+
+  vars:
+    service_name: "Confluence"
+    maintenance_log: "/var/log/ansible-confluence-maintenance.log"
+    log_retention_days: 30
+
+  pre_tasks:
+    - name: Display maintenance mode
+      debug:
+        msg:
+          - "============================================"
+          - "Confluence Maintenance Mode"
+          - "============================================"
+          - "Comprehensive: {{ comprehensive_maintenance | default(false) }}"
+          - "Tags: {{ ansible_run_tags }}"
+          - "============================================"
+      tags: always
+
+  roles:
+    # Common maintenance tasks
+    - role: common
+      tags: ['always', 'common']
+
+    # Confluence-specific tasks
+    - role: confluence
+      tags: ['always', 'confluence']
+
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: "✅ Confluence maintenance completed successfully"
+      tags: always

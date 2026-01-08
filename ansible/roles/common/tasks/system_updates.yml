@@ -1,0 +1,32 @@
+---
+# System package updates
+# Idempotent APT package management
+
+- name: Update APT package cache (idempotent)
+  apt:
+    update_cache: yes
+    cache_valid_time: "{{ apt_cache_valid_time }}"
+  register: apt_cache_update
+  tags: updates,system_updates
+
+- name: Upgrade all packages (idempotent)
+  apt:
+    upgrade: dist
+    autoremove: "{{ autoremove_packages }}"
+    autoclean: "{{ autoclean_cache }}"
+  register: apt_updates
+  tags: updates,system_updates
+
+- name: Check if reboot is required (idempotent)
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required
+  tags: updates,system_updates
+
+- name: Display update summary
+  debug:
+    msg:
+      - "Cache updated: {{ apt_cache_update.changed }}"
+      - "Packages upgraded: {{ apt_updates.changed }}"
+      - "Reboot required: {{ 'YES' if reboot_required.stat.exists else 'NO' }}"
+  tags: updates,system_updates

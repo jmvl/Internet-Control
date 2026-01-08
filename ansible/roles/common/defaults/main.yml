@@ -1,0 +1,26 @@
+---
+# Common maintenance role defaults
+
+# Log retention
+log_retention_days: 30
+journal_max_size: "500M"
+
+# Maintenance logging
+maintenance_log_dir: "/var/log"
+maintenance_log_prefix: "ansible-maintenance"
+
+# Disk space thresholds
+disk_warning_percent: 80
+disk_critical_percent: 90
+
+# System update settings
+apt_cache_valid_time: 3600
+autoremove_packages: true
+autoclean_cache: true
+
+# Reboot handling
+check_reboot_required: true
+auto_reboot: false  # Safety: never auto-reboot
+
+# Comprehensive mode triggers
+comprehensive_maintenance: false

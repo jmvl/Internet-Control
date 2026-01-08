@@ -1,0 +1,20 @@
+---
+# JIRA maintenance role defaults
+
+service_name: "JIRA"
+maintenance_log: "/var/log/ansible-jira-maintenance.log"
+
+# JIRA paths
+jira_home: "/var/atlassian/application-data/jira"
+jira_logs: "{{ jira_home }}/log"
+catalina_logs: "/opt/atlassian/jira/logs"
+tomcat_logs: "/opt/atlassian/jira/tomcat/logs"
+
+# Log size thresholds
+jira_log_max_size: "500M"
+jira_log_truncate_size: "200M"
+catalina_out_max_size: "1G"
+catalina_out_truncate_size: "200M"
+
+# Ports
+jira_http_port: 8080

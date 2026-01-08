@@ -1,0 +1,166 @@
+---
+# Docker VM-specific maintenance tasks
+
+# ========================================
+# DOCKER LOG CLEANUP
+# ========================================
+
+- name: Get Docker container logs size (idempotent)
+  script:
+    cmd: files/get-container-logs-size.sh
+  register: docker_logs_before
+  changed_when: false
+  tags: logs,docker_logs
+
+- name: Truncate large Docker container logs (idempotent)
+  script:
+    cmd: files/truncate-container-logs.sh "{{ docker_log_truncate_size }}"
+  register: docker_log_truncate
+  changed_when: docker_log_truncate.stdout != ""
+  tags: logs,docker_logs
+
+# ========================================
+# DOCKER SYSTEM CLEANUP
+# ========================================
+
+- name: Get Docker disk usage before cleanup (idempotent)
+  shell: docker system df
+  register: docker_df_before
+  changed_when: false
+  tags: docker,cleanup
+
+- name: Remove stopped containers (idempotent)
+  shell: docker container prune -f
+  register: container_prune
+  tags: docker,cleanup
+
+- name: Remove dangling images (idempotent)
+  shell: docker image prune -f
+  register: image_prune
+  tags: docker,cleanup
+
+- name: Remove unused networks (idempotent)
+  shell: docker network prune -f
+  register: network_prune
+  tags: docker,cleanup
+
+- name: Remove unused volumes (comprehensive only)
+  shell: docker volume prune -f
+  register: volume_prune
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  tags: docker,cleanup,comprehensive
+
+- name: Remove build cache (comprehensive only)
+  shell: docker builder prune -af
+  register: builder_prune
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  tags: docker,cleanup,comprehensive
+
+- name: Deep Docker cleanup (comprehensive only)
+  shell: docker system prune -af --volumes
+  register: deep_docker_prune
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  tags: docker,cleanup,comprehensive
+
+- name: Get Docker disk usage after cleanup (idempotent)
+  shell: docker system df
+  register: docker_df_after
+  changed_when: false
+  tags: docker,cleanup
+
+# ========================================
+# CRITICAL: FSTRIM FOR THIN POOL
+# ========================================
+
+- name: Check LVM thin pool usage before (idempotent)
+  shell: lvs {{ lvm_vg }}/{{ lvm_lv }} -o lv_name,data_percent,metadata_percent --noheadings
+  register: lvm_before
+  changed_when: false
+  delegate_to: "{{ pve_host }}"
+  tags: fstrim,lvm
+
+- name: Run fstrim to reclaim thin pool space (idempotent)
+  shell: fstrim -v /
+  register: fstrim_result
+  changed_when: fstrim_result.stdout is search('trimmed')
+  tags: fstrim,lvm,always
+
+- name: Log fstrim results
+  debug:
+    msg: "fstrim completed: {{ fstrim_result.stdout }}"
+  when: fstrim_result is defined
+  tags: fstrim,lvm
+
+- name: Check LVM thin pool usage after (idempotent)
+  shell: lvs {{ lvm_vg }}/{{ lvm_lv }} -o lv_name,data_percent,metadata_percent --noheadings
+  register: lvm_after
+  changed_when: false
+  delegate_to: "{{ pve_host }}"
+  tags: fstrim,lvm
+
+# ========================================
+# DOCKER HEALTH CHECKS (Idempotent)
+# ========================================
+
+- name: Ensure Docker service is running
+  systemd:
+    name: docker
+    state: started
+    enabled: yes
+  tags: health,services
+
+- name: Get Docker container health status (idempotent)
+  shell: docker ps --format "table name\tstatus" | grep -E "(unhealthy|restarting)" || true
+  register: unhealthy_containers
+  changed_when: false
+  tags: health,containers
+
+- name: Check critical containers (idempotent)
+  script:
+    cmd: files/check-critical-containers.sh {{ critical_containers | join(' ') }}
+  register: critical_containers_status
+  changed_when: false
+  tags: health,containers
+
+- name: Check Docker daemon info (idempotent)
+  script:
+    cmd: files/check-docker-info.sh
+  register: docker_info
+  changed_when: false
+  tags: health,docker
+
+# ========================================
+# COMPREHENSIVE MAINTENANCE
+# ========================================
+
+- name: Find old backup files (comprehensive only, idempotent)
+  find:
+    paths: /root
+    patterns: "*.tar.gz,*.tar,*.backup,*.bak"
+    age: "90d"
+    size: "100m"
+  register: old_backups
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  tags: comprehensive,backups
+
+- name: Remove old large backup files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_backups.files }}"
+  when:
+    - comprehensive_maintenance is defined and comprehensive_maintenance | bool
+    - old_backups.matched > 0
+  tags: comprehensive,backups
+
+- name: Ensure fstrim is scheduled weekly (comprehensive only, idempotent)
+  cron:
+    name: "Weekly fstrim for thin pool"
+    minute: "0"
+    hour: "2"
+    weekday: "0"
+    job: "/sbin/fstrim -v / >> /var/log/fstrim.log 2>&1"
+    user: root
+    state: present
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  tags: comprehensive,fstrim

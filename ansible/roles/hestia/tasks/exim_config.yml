@@ -1,0 +1,73 @@
+---
+# Exim4 Configuration Management
+# Addresses issue: "tainted filename" errors in Exim 4.95+
+# Based on intervention: /docs/hestia/hestia-mail-server-maintenance-intervention-2026-01-08.md
+
+- name: Ensure Exim4 configuration directory exists
+  file:
+    path: /etc/exim4
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: config,exim
+
+- name: Backup current Exim4 template
+  copy:
+    src: /etc/exim4/exim4.conf.template
+    dest: "/etc/exim4/exim4.conf.template.backup-{{ ansible_date_time.iso8601 | regex_replace('[:]', '-') }}"
+    remote_src: yes
+    owner: root
+    group: root
+    mode: '0644'
+  when: hestia_exim_config_backup | bool
+  tags: config,exim,backup
+
+- name: Deploy simplified SMTP relay configuration
+  template:
+    src: smtp_relay.conf.j2
+    dest: /etc/exim4/smtp_relay.conf
+    owner: Debian-exim
+    group: mail
+    mode: '0640'
+  notify: Reload Exim4
+  tags: config,exim,relay
+
+- name: Deploy Exim4 template with simplified macros (prevents tainted filename errors)
+  template:
+    src: exim4.conf.template.j2
+    dest: /etc/exim4/exim4.conf.template
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify: Update Exim4 configuration
+  tags: config,exim,template
+
+- name: Update Exim4 configuration from template
+  command: update-exim4.conf
+  notify: Reload Exim4
+  tags: config,exim,update
+
+- name: Verify Exim4 configuration syntax
+  command: exim4 -bV
+  register: exim_config_check
+  changed_when: false
+  failed_when: exim_config_check.rc != 0
+  tags: config,exim,verify
+
+- name: Test Exim4 routing to external recipient
+  command: exim4 -bt {{ hestia_exim_test_recipient }}
+  args:
+    stdin: "From: {{ hestia_exim_test_sender }}"
+  register: exim_test_routing
+  changed_when: false
+  failed_when: "'relay.edpnet.be' not in exim_test_routing.stdout"
+  when: hestia_exim_test_routing_enabled | bool
+  tags: config,exim,verify,test
+
+- name: Display Exim4 routing test results
+  debug:
+    msg: "{{ exim_test_routing.stdout_lines }}"
+  when: hestia_exim_test_routing_enabled | bool
+  tags: config,exim,verify,test

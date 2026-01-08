@@ -1,0 +1,100 @@
+---
+# Dovecot Index Cache Management
+# Addresses issue: large cache files causing "Cannot allocate memory" errors
+# Based on intervention: /docs/hestia/hestia-mail-server-maintenance-intervention-2026-01-08.md
+
+- name: Check for large Dovecot cache files (>50MB)
+  shell: find /home -name "dovecot.index.cache" -size +50M -type f
+  register: large_cache_files_raw
+  changed_when: false
+  tags: logs,dovecot,cache
+
+- name: Parse large cache files list
+  set_fact:
+    large_cache_files: "{{ large_cache_files_raw.stdout_lines }}"
+  when: large_cache_files_raw.stdout_lines | length > 0
+  tags: logs,dovecot,cache
+
+- name: Log large cache files found
+  lineinfile:
+    path: /var/log/dovecot-cache-monitor.log
+    line: "{{ ansible_date_time.iso8601 }} - Found {{ large_cache_files | length }} large cache files (>50MB)"
+    create: yes
+    owner: root
+    group: root
+    mode: '0644'
+  when: large_cache_files is defined and large_cache_files | length > 0
+  tags: logs,dovecot,cache
+
+- name: Display large cache files
+  debug:
+    msg: "Found {{ large_cache_files | length }} large cache files:\n{{ large_cache_files | join('\n') }}"
+  when: large_cache_files is defined and large_cache_files | length > 0
+  tags: logs,dovecot,cache
+
+- name: Check size of each large cache file
+  shell: stat -c%s "{{ item }}"
+  register: cache_file_sizes
+  loop: "{{ large_cache_files }}"
+  when:
+    - large_cache_files is defined
+    - large_cache_files | length > 0
+  changed_when: false
+  tags: logs,dovecot,cache
+
+- name: Remove oversized cache files (>100MB)
+  shell: |
+    size=$(stat -c%s "{{ item }}" 2>/dev/null || echo 0)
+    if [ "$size" -gt 104857600 ]; then
+      rm -f "{{ item }}"
+      echo "Removed: {{ item }} (was $((size / 1048576))MB)"
+    fi
+  loop: "{{ large_cache_files }}"
+  register: cache_removal
+  when:
+    - large_cache_files is defined
+    - large_cache_files | length > 0
+  notify: Reload Dovecot
+  tags: logs,dovecot,cache,cleanup
+
+- name: Remove associated log files for removed caches
+  shell: |
+    cache_file="{{ item }}"
+    log_file="${cache_file%.cache}.log"
+    if [ -f "$log_file" ]; then
+      rm -f "$log_file"
+      echo "Removed log: $log_file"
+    fi
+  loop: "{{ large_cache_files }}"
+  when:
+    - large_cache_files is defined
+    - large_cache_files | length > 0
+  notify: Reload Dovecot
+  tags: logs,dovecot,cache,cleanup
+
+- name: Ensure Dovecot custom configuration directory exists
+  file:
+    path: /etc/dovecot/conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  tags: config,dovecot
+
+- name: Deploy Dovecot memory limit configuration
+  template:
+    src: dovecot-custom.conf.j2
+    dest: /etc/dovecot/conf.d/90-custom.conf
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+  notify: Reload Dovecot
+  tags: config,dovecot
+
+- name: Verify Dovecot configuration syntax
+  command: doveconf -n
+  register: dovecot_config_check
+  changed_when: false
+  failed_when: dovecot_config_check.rc != 0
+  tags: config,dovecot,verify

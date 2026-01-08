@@ -1,0 +1,52 @@
+---
+# System log cleanup tasks
+# Cleans system journals and log files
+
+- name: Rotate and clean system journals (idempotent)
+  shell: journalctl --vacuum-time={{ log_retention_days }}d
+  register: journal_cleanup
+  changed_when: journal_cleanup.rc == 0
+  tags: logs,system_logs
+
+- name: Configure journal size limit (idempotent)
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: '^#?SystemMaxUse='
+    line: 'SystemMaxUse={{ journal_max_size }}'
+    state: present
+    backup: yes
+  notify: restart journald
+  tags: logs,system_logs
+
+- name: Configure journal retention time (idempotent)
+  lineinfile:
+    path: /etc/systemd/journald.conf
+    regexp: '^#?MaxRetentionSec='
+    line: 'MaxRetentionSec={{ log_retention_days }}day'
+    state: present
+  notify: restart journald
+  tags: logs,system_logs
+
+- name: Find old syslog files
+  find:
+    paths: /var/log
+    patterns: "*.log.*,*.gz,syslog.*,daemon.log.*,auth.log.*"
+    age: "{{ log_retention_days }}d"
+  register: old_syslogs
+  tags: logs,system_logs
+
+- name: Remove old syslog files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_syslogs.files }}"
+  when: old_syslogs.matched > 0
+  register: syslog_cleanup
+  tags: logs,system_logs
+
+- name: Display log cleanup summary
+  debug:
+    msg:
+      - "System journals cleaned: {{ journal_cleanup.changed }}"
+      - "Syslog files removed: {{ old_syslogs.matched | default(0) }}"
+  tags: logs,system_logs

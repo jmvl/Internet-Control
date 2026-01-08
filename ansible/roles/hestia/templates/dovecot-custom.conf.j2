@@ -1,0 +1,21 @@
+# Dovecot Custom Configuration
+# Deployed by Ansible - Hestia Mail Server Maintenance
+# Purpose: Increase memory limits to handle large cache files and prevent "Cannot allocate memory" errors
+# Based on: /docs/hestia/hestia-mail-server-maintenance-intervention-2026-01-08.md
+
+# Increase vsz_limit to handle large cache files (3x max cache size)
+# This prevents "Cannot allocate memory" errors when cache files grow large
+service imap {
+  vsz_limit = {{ hestia_dovecot_imap_vsz_limit }}
+  process_limit = {{ hestia_dovecot_process_limit }}
+}
+
+service pop3 {
+  vsz_limit = {{ hestia_dovecot_pop3_vsz_limit }}
+}
+
+# Default limit for all Dovecot services
+default_vsz_limit = {{ hestia_dovecot_default_vsz_limit }}
+
+# Log file for cache monitoring
+log_path = /var/log/dovecot.log

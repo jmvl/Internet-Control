@@ -1,0 +1,149 @@
+---
+# JIRA service-specific maintenance tasks
+
+# ========================================
+# JIRA LOG CLEANUP
+# ========================================
+
+- name: Find old JIRA application logs (idempotent)
+  find:
+    paths: "{{ jira_logs }}"
+    patterns: "atlassian-jira*.log.*,catalina*.log.*,*.gz"
+    age: "{{ log_retention_days }}d"
+  register: old_jira_logs
+  ignore_errors: yes
+  tags: logs,jira_logs
+
+- name: Remove old JIRA logs
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_jira_logs.files }}"
+  when: old_jira_logs.matched > 0
+  tags: logs,jira_logs
+
+- name: Truncate large JIRA logs (idempotent)
+  shell: |
+    find {{ jira_logs }} -name "atlassian-jira*.log" -type f -size +{{ jira_log_max_size }} -exec truncate -s {{ jira_log_truncate_size }} {} \; 2>/dev/null || true
+  register: jira_truncate
+  changed_when: jira_truncate.rc == 0
+  tags: logs,jira_logs
+
+- name: Find old Catalina logs (idempotent)
+  find:
+    paths: "{{ catalina_logs }}"
+    patterns: "catalina*.log.*,localhost*.log.*,*.gz"
+    age: "{{ log_retention_days }}d"
+  register: old_catalina_logs
+  ignore_errors: yes
+  tags: logs,catalina_logs
+
+- name: Remove old Catalina logs
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_catalina_logs.files }}"
+  when: old_catalina_logs.matched > 0
+  tags: logs,catalina_logs
+
+- name: Truncate catalina.out if too large (idempotent)
+  shell: |
+    if [ -f {{ catalina_logs }}/catalina.out ]; then
+      size=$(stat -f%z {{ catalina_logs }}/catalina.out 2>/dev/null || stat -c%s {{ catalina_logs }}/catalina.out)
+      if [ $size -gt 1073741824 ]; then
+        tail -c {{ catalina_out_truncate_size }} {{ catalina_logs }}/catalina.out > {{ catalina_logs }}/catalina.out.tmp
+        mv {{ catalina_logs }}/catalina.out.tmp {{ catalina_logs }}/catalina.out
+        echo "Truncated catalina.out from $(($size / 1048576))MB to {{ catalina_out_truncate_size }}"
+      fi
+    fi
+  register: catalina_truncate
+  changed_when: "'Truncated' in catalina_truncate.stdout"
+  tags: logs,catalina_logs
+
+# ========================================
+# JIRA WORK DIRECTORY CLEANUP
+# ========================================
+
+- name: Find old JIRA import/export files (idempotent)
+  find:
+    paths: "{{ jira_home }}/import,{{ jira_home }}/export"
+    patterns: "*"
+    age: "60d"
+  register: old_import_exports
+  ignore_errors: yes
+  tags: logs,work_cleanup
+
+- name: Remove old import/export files
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ old_import_exports.files }}"
+  when: old_import_exports.matched > 0
+  tags: logs,work_cleanup
+
+- name: Clean JIRA temp directory (idempotent)
+  shell: |
+    find {{ jira_home }}/tmp -type f -mtime +7 -delete 2>/dev/null || true
+    find {{ jira_home }}/tmp -type d -empty -delete 2>/dev/null || true
+  register: jira_temp_clean
+  changed_when: jira_temp_clean.rc == 0
+  tags: logs,work_cleanup
+
+# ========================================
+# JIRA SERVICE HEALTH CHECKS
+# ========================================
+
+- name: Check JIRA process status (idempotent)
+  shell: ps aux | grep -i "[j]ira" | wc -l
+  register: jira_process_count
+  changed_when: false
+  tags: health,processes
+
+- name: Check JIRA HTTP port (idempotent)
+  shell: |
+    netstat -tlnp | grep ':{{ jira_http_port }}' || ss -tlnp | grep ':{{ jira_http_port }}'
+  register: jira_port
+  changed_when: false
+  ignore_errors: yes
+  tags: health,ports
+
+- name: Check PostgreSQL processes (idempotent)
+  shell: ps aux | grep -i "[p]ostgres" | wc -l
+  register: db_process_count
+  changed_when: false
+  tags: health,database
+
+# ========================================
+# DATABASE MAINTENANCE
+# ========================================
+
+- name: Ensure PostgreSQL is running (idempotent)
+  systemd:
+    name: postgresql
+    state: started
+    enabled: yes
+  ignore_errors: yes
+  tags: health,database
+
+- name: Vacuum JIRA database (comprehensive only)
+  shell: |
+    su - postgres -c "vacuumdb --analyze jira" 2>&1 || true
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  register: db_vacuum
+  changed_when: db_vacuum.rc == 0
+  ignore_errors: yes
+  tags: comprehensive,database
+
+# ========================================
+# COMPREHENSIVE MAINTENANCE
+# ========================================
+
+- name: Clean APT cache thoroughly (comprehensive only)
+  shell: |
+    apt-get clean
+    apt-get autoclean
+    rm -rf /var/cache/apt/archives/*.deb
+  when: comprehensive_maintenance is defined and comprehensive_maintenance | bool
+  register: apt_cache_clean
+  changed_when: apt_cache_clean.rc == 0
+  tags: comprehensive

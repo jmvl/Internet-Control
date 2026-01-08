@@ -1,0 +1,134 @@
+---
+name: Ansible Test
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-test.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'ansible/**'
+      - '.github/workflows/ansible-test.yml'
+  schedule:
+    # Run tests every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+jobs:
+  molecule-test:
+    name: Molecule Test (Hestia Role)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        role:
+          - hestia
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          path: ansible
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r ansible/requirements-testing.txt
+
+      - name: Set up Docker
+        uses: docker-practice/actions-setup-docker@master
+
+      - name: Display Molecule version
+        run: |
+          molecule --version
+          docker --version
+
+      - name: Create inventory for testing
+        working-directory: ./ansible
+        run: |
+          mkdir -p tests
+          cat > tests/inventory <<EOF
+          [test_hosts]
+          debian12-hestia ansible_connection=docker
+
+          [test_hosts:vars]
+          ansible_python_interpreter=/usr/bin/python3
+          EOF
+
+      - name: Run Molecule tests
+        working-directory: ./ansible
+        run: |
+          cd roles/${{ matrix.role }}
+          molecule test --all=true
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: molecule-test-results-${{ matrix.role }}
+          path: |
+            ansible/roles/${{ matrix.role }}/molecule/**/create.*
+            ansible/roles/${{ matrix.role }}/molecule/**/converge.*
+            ansible/roles/${{ matrix.role }}/molecule/**/verify.*
+          retention-days: 7
+
+      - name: Test summary
+        if: always()
+        run: |
+          echo "## Molecule Test Results :test_tube:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Role**: ${{ matrix.role }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ $? -eq 0 ]; then
+            echo "✅ Tests passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Tests failed. Check the logs above." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  playbook-syntax:
+    name: Playbook Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: pip install ansible
+
+      - name: Check playbook syntax
+        working-directory: ./ansible
+        run: |
+          echo "Checking playbook syntax..."
+          for playbook in playbooks/*.yml; do
+            if [ -f "$playbook" ]; then
+              echo "Checking: $playbook"
+              ansible-playbook "$playbook" --syntax-check
+            fi
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Playbook Syntax Check :clipboard:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ $? -eq 0 ]; then
+            echo "✅ All playbooks have valid syntax" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Syntax errors found" >> $GITHUB_STEP_SUMMARY
+          fi

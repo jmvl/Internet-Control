@@ -1,0 +1,16 @@
+---
+# Common maintenance role - main entry point
+# This role provides reusable maintenance tasks
+
+# Include common maintenance tasks based on tags
+- include_tasks: maintenance_init.yml
+  tags: ['always', 'init']
+
+- include_tasks: system_logs.yml
+  tags: ['logs', 'system_logs']
+
+- include_tasks: system_updates.yml
+  tags: ['updates', 'system_updates']
+
+- include_tasks: maintenance_report.yml
+  tags: ['always', 'report']

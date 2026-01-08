@@ -1,0 +1,46 @@
+---
+# JIRA System Maintenance Playbook (Refactored)
+# Target: PCT-102 (192.168.1.22) - JIRA Container
+# Purpose: Comprehensive system maintenance with role-based architecture
+# Schedule: Weekly maintenance, monthly comprehensive
+#
+# Usage:
+#   ansible-playbook jira-maintenance-refactored.yml
+#   ansible-playbook jira-maintenance-refactored.yml --tags logs
+#   ansible-playbook jira-maintenance-refactored.yml --extra-vars "comprehensive_maintenance=true"
+
+- name: JIRA System Maintenance
+  hosts: jira.accelior.com
+  become: yes
+
+  vars:
+    service_name: "JIRA"
+    maintenance_log: "/var/log/ansible-jira-maintenance.log"
+    log_retention_days: 30
+
+  pre_tasks:
+    - name: Display maintenance mode
+      debug:
+        msg:
+          - "============================================"
+          - "JIRA Maintenance Mode"
+          - "============================================"
+          - "Comprehensive: {{ comprehensive_maintenance | default(false) }}"
+          - "Tags: {{ ansible_run_tags }}"
+          - "============================================"
+      tags: always
+
+  roles:
+    # Common maintenance tasks
+    - role: common
+      tags: ['always', 'common']
+
+    # JIRA-specific tasks
+    - role: jira
+      tags: ['always', 'jira']
+
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: "✅ JIRA maintenance completed successfully"
+      tags: always

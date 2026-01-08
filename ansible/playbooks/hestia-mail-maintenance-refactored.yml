@@ -1,0 +1,46 @@
+---
+# HestiaCP Mail Server Maintenance Playbook (Refactored)
+# Target: PCT-130 (192.168.1.30) - mail.vega-messenger.com
+# Purpose: Comprehensive system maintenance with role-based architecture
+# Schedule: Daily light maintenance, weekly full maintenance, monthly comprehensive
+#
+# Usage:
+#   ansible-playbook hestia-mail-maintenance-refactored.yml
+#   ansible-playbook hestia-mail-maintenance-refactored.yml --tags logs
+#   ansible-playbook hestia-mail-maintenance-refactored.yml --extra-vars "comprehensive_maintenance=true"
+
+- name: HestiaCP Mail Server Maintenance
+  hosts: mail-server
+  become: yes
+
+  vars:
+    service_name: "HestiaCP"
+    maintenance_log: "/var/log/ansible-hestia-maintenance.log"
+    log_retention_days: 30
+
+  pre_tasks:
+    - name: Display maintenance mode
+      debug:
+        msg:
+          - "============================================"
+          - "HestiaCP Maintenance Mode"
+          - "============================================"
+          - "Comprehensive: {{ comprehensive_maintenance | default(false) }}"
+          - "Tags: {{ ansible_run_tags }}"
+          - "============================================"
+      tags: always
+
+  roles:
+    # Common maintenance tasks
+    - role: common
+      tags: ['always', 'common']
+
+    # HestiaCP-specific tasks
+    - role: hestia
+      tags: ['always', 'hestia']
+
+  post_tasks:
+    - name: Display completion message
+      debug:
+        msg: "✅ HestiaCP maintenance completed successfully"
+      tags: always

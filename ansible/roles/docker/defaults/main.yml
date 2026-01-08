@@ -1,0 +1,23 @@
+---
+# Docker VM maintenance role defaults
+
+service_name: "Docker VM"
+maintenance_log: "/var/log/ansible-docker-maintenance.log"
+
+# Docker settings
+log_retention_days: 7
+docker_log_max_size: "100m"
+docker_log_truncate_size: "50m"
+journal_max_size: "500M"
+
+# LVM settings
+pve_host: "192.168.1.10"
+lvm_vg: "pve"
+lvm_lv: "data"
+
+# Critical containers to monitor
+critical_containers:
+  - netdata
+  - pihole
+  - supabase
+  - n8n

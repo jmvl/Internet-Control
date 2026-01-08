@@ -1,0 +1,34 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  gather_facts: true
+
+  pre_tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: true
+        cache_valid_time: 3600
+      changed_when: false
+
+    - name: Install dependencies for testing
+      apt:
+        name:
+          - curl
+          - ca-certificates
+          - gnupg
+        state: present
+
+  roles:
+    - role: hestia
+      vars:
+        # Test configuration variables
+        smtp_relay_credentials:
+          host: "test.relay.example.com"
+          port: 587
+          user: "test_user"
+          pass: "test_pass"
+        log_retention_days: 7
+        dovecot_vsz_limit: "2G"
+        max_cache_size_mb: 50
+        queue_threshold: 20

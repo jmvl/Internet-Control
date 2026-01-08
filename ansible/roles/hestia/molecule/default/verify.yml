@@ -1,0 +1,69 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Check if Dovecot configuration file exists
+      stat:
+        path: /etc/dovecot/conf.d/90-custom.conf
+      register: dovecot_config
+      failed_when: not dovecot_config.stat.exists
+
+    - name: Check if Dovecot config has memory limits
+      lineinfile:
+        path: /etc/dovecot/conf.d/90-custom.conf
+        regexp: '^vsz_limit'
+        state: absent
+      check_mode: true
+      register: vsz_limit
+      failed_when: vsz_limit.changed
+
+    - name: Check if Exim relay configuration exists
+      stat:
+        path: /etc/exim4/smtp_relay.conf
+      register: exim_config
+      failed_when: not exim_config.stat.exists
+
+    - name: Check if monitoring scripts are deployed
+      stat:
+        path: /usr/local/bin/dovecot-cache-cleanup.sh
+      register: dovecot_script
+      failed_when: not dovecot_script.stat.exists
+
+    - name: Check if Exim queue monitor script exists
+      stat:
+        path: /usr/local/bin/exim-queue-monitor.sh
+      register: exim_script
+      failed_when: not exim_script.stat.exists
+
+    - name: Check if maintenance log directory exists
+      stat:
+        path: /var/log/hestia-maintenance
+      register: log_dir
+      failed_when: not log_dir.stat.exists
+
+    - name: Verify Dovecot cache cleanup is executable
+      stat:
+        path: /usr/local/bin/dovecot-cache-cleanup.sh
+      register: dovecot_script_perms
+      failed_when: not dovecot_script_perms.stat.exists or dovecot_script_perms.stat.mode != '0755'
+
+    - name: Check if cron jobs exist
+      stat:
+        path: /etc/cron.d/dovecot-cache-cleanup
+      register: dovecot_cron
+      failed_when: not dovecot_cron.stat.exists
+
+    - name: Display verification results
+      debug:
+        msg:
+          - "Dovecot config exists: {{ dovecot_config.stat.exists }}"
+          - "Dovecot vsz_limit configured: {{ not vsz_limit.changed }}"
+          - "Exim relay config exists: {{ exim_config.stat.exists }}"
+          - "Dovecot cleanup script exists: {{ dovecot_script.stat.exists }}"
+          - "Exim monitor script exists: {{ exim_script.stat.exists }}"
+          - "Log directory exists: {{ log_dir.stat.exists }}"
+          - "Dovecot script is executable: {{ dovecot_script_perms.stat.mode == '0755' }}"
+          - "Dovecot cron job exists: {{ dovecot_cron.stat.exists }}"

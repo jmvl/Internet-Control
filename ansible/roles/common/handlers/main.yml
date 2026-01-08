@@ -1,0 +1,19 @@
+---
+# Common handlers for maintenance roles
+
+- name: restart journald
+  systemd:
+    name: systemd-journald
+    state: restarted
+  listen: restart journald
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+  listen: reload systemd
+
+- name: restart cron
+  systemd:
+    name: cron
+    state: restarted
+  listen: restart cron

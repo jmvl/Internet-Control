@@ -1,0 +1,26 @@
+# Exim4 Configuration Template - Simplified Macros
+# Deployed by Ansible - Hestia Mail Server Maintenance
+# Purpose: Simplified macros to prevent "tainted filename" errors in Exim 4.95+
+# Based on: /docs/hestia/hestia-mail-server-maintenance-intervention-2026-01-08.md
+# IMPORTANT: This is a template that demonstrates the simplified macro approach
+# The actual Exim4 configuration should be maintained through HestiaCP
+
+# Simplified SMTP Relay Configuration (prevents tainted filename errors)
+# OLD (problematic): SMTP_RELAY_FILE = ${if exists{/etc/exim4/domains/${sender_address_domain}/smtp_relay.conf}...
+# NEW (fixed): Use global relay configuration
+SMTP_RELAY_FILE = /etc/exim4/smtp_relay.conf
+
+# Disable problematic macros that use tainted user input
+# OLD: OUTGOING_IP = /etc/exim4/domains/$sender_address_domain/ip
+# NEW: Disabled to prevent tainted filename errors
+OUTGOING_IP =
+
+# OLD: DKIM_FILE = /etc/exim4/domains/${lc:${domain:$h_from:}}/dkim.pem
+# NEW: Disabled to prevent tainted filename errors
+# Note: DKIM signing should be configured through HestiaCP's interface
+DKIM_FILE =
+
+# NOTE: This template shows the critical fixes. In production, you should:
+# 1. Maintain the full Exim4 configuration through HestiaCP
+# 2. Apply these macro simplifications manually or through HestiaCP updates
+# 3. Use this template as a reference for the fixes needed
