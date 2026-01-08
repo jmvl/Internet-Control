@@ -55,12 +55,14 @@
       - ""
       - "SYSTEM UPDATES:"
       - "  Updates Applied: {{ apt_updates.changed | default(false) }}"
-      - "  Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if (reboot_required is defined and reboot_required.stat.exists) else 'NO' }}"
+      - "  Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if (reboot_required is defined"
+      - "                      and reboot_required.stat.exists) else 'NO' }}"
       - ""
       - "LOG CLEANUP:"
       - "  System Journals: {{ journal_cleanup.changed | default(false) }}"
       - ""
-      - "{% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}COMPREHENSIVE MAINTENANCE:{% endif %}"
+      - "{% if comprehensive_maintenance is defined and comprehensive_maintenance | bool %}"
+      - "COMPREHENSIVE MAINTENANCE:{% endif %}"
       - "============================================"
   tags: always
 

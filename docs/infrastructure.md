@@ -411,6 +411,7 @@ RAID Mirror Structure:
 
 ### 3. OPNsense Firewall (192.168.1.3 - Virtualized)
 **Role**: Network Security & Traffic Management Hub
+**Web UI**: `https://192.168.1.3:8443`
 **Primary Functions**:
 - DHCP server for IP address assignment
 - Firewall rules and access control

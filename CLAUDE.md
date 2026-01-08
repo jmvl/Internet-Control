@@ -7,6 +7,41 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Quick Start Guide**: `QUICK-START.md` - Emergency recovery and daily operations
 - **Architecture Details**: `/docs/architecture.md` - Traffic control strategy and implementation
 
+## ⚠️ CRITICAL: NO ASSUMPTIONS - VERIFY EVERYTHING
+
+**ALWAYS READ THE DOCUMENTATION FIRST - NEVER GUESS OR ASSUME:**
+
+1. **Service URLs**: Before mentioning any service URL (Nginx Proxy Manager, Portainer, etc.):
+   ```bash
+   # Search the database FIRST
+   sqlite3 /Users/jm/Codebase/internet-control/infrastructure-db/infrastructure.db \
+     "SELECT service_name, endpoint_url FROM services WHERE service_name LIKE '%nginx%';"
+
+   # Search documentation
+   rg -i "nginx.home.accelior.com" /Users/jm/Codebase/internet-control/docs/
+   ```
+
+2. **IP Addresses & Ports**: Always verify:
+   ```bash
+   # Check database for host IPs
+   sqlite3 infrastructure.db "SELECT hostname, ip FROM hosts WHERE hostname LIKE '%dev%';"
+   ```
+
+3. **Service Locations**: Never assume - query the database or grep docs
+
+4. **Configuration Details**: Always read actual config files, don't assume defaults
+
+**Recent Correction Example:**
+- ❌ **WRONG**: "NPM is at npm.acmea.tech" (assumption without verification)
+- ✅ **CORRECT**: "Nginx Proxy Manager is at https://nginx.home.accelior.com/" (verified in docs and database)
+
+**Verification Protocol Before Any Infrastructure Statement:**
+1. Search infrastructure database: `sqlite3 infrastructure.db "SELECT ..."`
+2. Search documentation: `rg -i "<term>" /Users/jm/Codebase/internet-control/docs/`
+3. Only then state the information as fact
+
+If you cannot find information in documentation or database, clearly state: "I need to verify this in the documentation" rather than guessing.
+
 ## Project Overview
 
 This repository contains a comprehensive enterprise-grade home network infrastructure with multi-layer traffic control, including:

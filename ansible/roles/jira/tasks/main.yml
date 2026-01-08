@@ -24,7 +24,10 @@
 
 - name: Truncate large JIRA logs (idempotent)
   shell: |
-    find {{ jira_logs }} -name "atlassian-jira*.log" -type f -size +{{ jira_log_max_size }} -exec truncate -s {{ jira_log_truncate_size }} {} \; 2>/dev/null || true
+    find {{ jira_logs }} -name "atlassian-jira*.log" -type f \
+      -size +{{ jira_log_max_size }} \
+      -exec truncate -s {{ jira_log_truncate_size }} {} \; \
+      2>/dev/null || true
   register: jira_truncate
   changed_when: jira_truncate.rc == 0
   tags: logs,jira_logs

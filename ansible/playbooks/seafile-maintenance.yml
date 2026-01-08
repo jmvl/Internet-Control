@@ -56,7 +56,10 @@
       tags: gc,dry-run
 
     - name: Parse dry-run results for removable blocks
-      shell: echo "{{ gc_dry_run.stdout }}" | grep "blocks can be removed" | awk '{sum += $(NF-3)} END {print sum " total blocks can be removed"}'
+      shell: |
+        echo "{{ gc_dry_run.stdout }}" | \
+        grep "blocks can be removed" | \
+        awk '{sum += $(NF-3)} END {print sum " total blocks can be removed"}'
       register: removable_blocks
       changed_when: false
       when: gc_dry_run is defined
@@ -79,7 +82,10 @@
       tags: gc
 
     - name: Parse GC results for removed blocks
-      shell: echo "{{ gc_result.stdout }}" | grep "blocks are removed" | awk '{sum += $(NF-3)} END {print sum " total blocks removed"}'
+      shell: |
+        echo "{{ gc_result.stdout }}" | \
+        grep "blocks are removed" | \
+        awk '{sum += $(NF-3)} END {print sum " total blocks removed"}'
       register: removed_blocks
       changed_when: false
       when: gc_result is defined
@@ -103,7 +109,10 @@
 
     - name: Optimize Seafile MySQL database
       shell: |
-        docker exec seafile-mysql mysql -uroot -p$(docker exec seafile cat /opt/seafile/conf/seafile.conf | grep password | head -1 | awk -F= '{print $2}' | tr -d ' ') -e "
+        docker exec seafile-mysql mysql -uroot \
+          -p$(docker exec seafile cat /opt/seafile/conf/seafile.conf | \
+              grep password | head -1 | awk -F= '{print $2}' | tr -d ' ') \
+          -e "
         USE seafile_db;
         OPTIMIZE TABLE Repo, Branch, Commit, Block, FileLocks;
         USE ccnet_db;
@@ -275,7 +284,9 @@
           GARBAGE COLLECTION:
           - Removable Blocks (Dry-run): {{ removable_blocks.stdout | default('Not run') }}
           - Blocks Removed: {{ removed_blocks.stdout | default('0 blocks removed') }}
-          - GC Duration: {{ (gc_result.end | default(ansible_date_time.iso8601)) | to_datetime - (gc_result.start | default(ansible_date_time.iso8601)) | to_datetime if gc_result is defined else 'N/A' }}
+          - GC Duration: "{% if gc_result is defined %}{{ ((gc_result.end | default(ansible_date_time.iso8601))"
+          - " | to_datetime - (gc_result.start | default(ansible_date_time.iso8601))"
+          - " | to_datetime) }}{% else %}N/A{% endif %}"
 
           DATABASE:
           - MySQL Status: {{ mysql_status.stdout | default('Unknown') }}
@@ -335,7 +346,8 @@
 
           HEALTH STATUS:
           Seafile Container: {{ seafile_health_after.stdout }}
-          Web Interface: {{ 'Accessible (200 OK)' if web_check is defined and web_check.status == 200 else 'Check needed' }}
+          Web Interface: "{% if web_check is defined and web_check.status == 200 %}Accessible (200 OK){% else %}"
+          - "Check needed{% endif %}"
 
           ============================================
           ⚠️  IMPORTANT: Garbage collection is critical for storage health!

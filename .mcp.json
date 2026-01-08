@@ -1,5 +1,17 @@
 {
   "mcpServers": {
+    "hetzner": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/dkruyt/mcp-hetzner.git",
+        "mcp-hetzner"
+      ],
+      "env": {
+        "HCLOUD_TOKEN": "DmsXjFP5Yl05WfX9AiJGxDszr9tGHKMivBAYWfpOslMzPyS8blYVgHIA8DtgOIRO"
+      }
+    },
     "context7": {
       "type": "stdio",
       "command": "npx",
@@ -7,20 +19,6 @@
         "-y",
         "@upstash/context7-mcp@latest"
       ]
-    },
-    "n8n-mcp": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "n8n-mcp"
-      ],
-      "env": {
-        "MCP_MODE": "stdio",
-        "LOG_LEVEL": "error",
-        "DISABLE_CONSOLE_OUTPUT": "true",
-        "N8N_API_URL": "https://n8n.accelior.com",
-        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwZTNmMzlhZi1iODhiLTQzZGQtOTVjNi1jYmI2NWQyYTEyMzUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzU2NjI3MzMzfQ.IwVv8XbPHsVRzLe-zS_kNLh6u5AetOaEdPMMFqtAPx4"
-      }
     },
     "perplexity": {
       "type": "stdio",

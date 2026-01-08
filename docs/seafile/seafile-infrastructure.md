@@ -27,59 +27,73 @@ Seafile is a professional file hosting and collaboration platform running on PCT
 ### Docker Stack Components
 
 #### 1. Seafile Application Container
-- **Image**: `seafileltd/seafile-mc:11.0-latest`
+- **Image**: `seafileltd/seafile-mc:13.0-latest`
 - **Container Name**: `seafile`
-- **Port Mapping**: 50080:80
-- **Restart Policy**: always
-- **Health Check**: API ping endpoint with 60s startup grace period
+- **Port Mapping**: 8092:80
+- **Restart Policy**: unless-stopped
+- **Health Check**: HTTP check on port 80 with 60s startup grace period
 
 #### 2. MariaDB Database Container
 - **Image**: `mariadb:10.11`
 - **Container Name**: `seafile-mysql`
-- **Port Mapping**: 127.0.0.1:3306:3306 (localhost only)
-- **Health Check**: mysqladmin ping with 30s startup period, 10 retries
+- **Port Mapping**: Internal only (no host port exposed)
+- **Health Check**: healthcheck.sh with 30s startup period, 10 retries
 - **Storage**: Persistent volume at `./db`
 
-#### 3. Memcached Cache Container
-- **Image**: `memcached:1.6.18`
-- **Container Name**: `seafile-memcached`
-- **Memory Limit**: 256MB
-- **Health Check**: netcat stats check with 10s startup period
+#### 3. Redis Cache Container
+- **Image**: `redis:7`
+- **Container Name**: `seafile-redis`
+- **Authentication**: Password protected
+- **Purpose**: Session cache and performance optimization (replaced Memcached in v13.0)
 
 ### Directory Structure
 ```
 /opt/seafile-docker/
-├── docker-compose.yml          # Main orchestration file
-├── docker-compose.yml.backup   # Backup of previous configuration
+├── .env                        # Environment configuration (Seafile 13.0+)
+├── seafile-server.yml          # Docker Compose service definitions
+├── docker-compose.yml.backup-12.0  # Backup of v12.0 configuration
 ├── seafile-data/               # Seafile application data
-├── db/                        # MariaDB persistent storage
-├── mnt/                       # Mounted external storage
-└── zoneinfo/                  # Timezone data
+│   └── seafile/conf/           # Seafile configuration files
+├── db/                         # MariaDB persistent storage
+├── mnt/                        # Mounted external storage
+└── zoneinfo/                   # Timezone data
 ```
 
 ## Configuration
 
-### Environment Variables
+### Environment Variables (Seafile 13.0+)
 
-#### Database Configuration
-```yaml
-DB_HOST: seafile-mysql
-DB_ROOT_PASSWD: ABluMBuINGsT
+Configuration is now managed via `.env` file. Key settings:
+
+#### Server Configuration
+```bash
+SEAFILE_SERVER_HOSTNAME=files.accelior.com
+SEAFILE_SERVER_PROTOCOL=https
+TIME_ZONE=Etc/UTC
+JWT_PRIVATE_KEY=<configured>
 ```
 
-#### Application Settings
-```yaml
-TIME_ZONE: Etc/UTC
-SEAFILE_ADMIN_EMAIL: info@accelior.com
-SEAFILE_ADMIN_PASSWORD: rgjZqJqMhx6r
-SEAFILE_SERVER_LETSENCRYPT: false
-SEAFILE_SERVER_HOSTNAME: files.accelior.com
+#### Database Configuration
+```bash
+SEAFILE_MYSQL_DB_HOST=db
+SEAFILE_MYSQL_DB_USER=seafile
+SEAFILE_MYSQL_DB_PASSWORD=<configured>
+INIT_SEAFILE_MYSQL_ROOT_PASSWORD=<configured>
+```
+
+#### Cache Configuration (Redis)
+```bash
+CACHE_PROVIDER=redis
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=<configured>
 ```
 
 #### Security Notes
-- Database password is stored in environment variables
-- Admin credentials are configured for initial setup
-- HTTPS is currently disabled (SEAFILE_SERVER_LETSENCRYPT: false)
+- All credentials stored in `.env` file
+- HTTPS enabled via `SEAFILE_SERVER_PROTOCOL=https`
+- JWT authentication enabled for API security
+- SERVICE_URL and FILE_SERVER_ROOT auto-calculated from hostname/protocol
 
 ### Health Check Configuration
 
@@ -90,12 +104,10 @@ SEAFILE_SERVER_HOSTNAME: files.accelior.com
 - **Retries**: 10
 - **Start Period**: 30 seconds (allows DB initialization)
 
-#### Memcached Health Check
-- **Test Command**: `echo stats | nc localhost 11211 | grep -q uptime`
-- **Interval**: 10 seconds
-- **Timeout**: 5 seconds
-- **Retries**: 3
-- **Start Period**: 10 seconds
+#### Redis Health Check
+- Redis runs as a service dependency without explicit health check
+- Password authentication ensures secure connections
+- Seafile depends on Redis being available before starting
 
 #### Seafile Health Check
 - **Test Command**: `curl -f http://localhost/api2/ping/`
@@ -459,17 +471,28 @@ watch 'docker stats --no-stream | grep seafile'
 
 ### Limitations
 1. **Single Node**: No high availability/clustering configured
-2. **SSL/TLS**: Currently disabled, manual HTTPS setup required
-3. **Backup Automation**: Manual backup processes, no automated scheduling
+2. **Backup Automation**: Manual backup processes, no automated scheduling
+
+### Resolved Issues
+1. **SSL/TLS**: Now enabled via SEAFILE_SERVER_PROTOCOL=https (resolved in v13.0 upgrade)
+2. **Share Link URLs**: Now correctly generated with HTTPS and without port number
 
 ### Future Improvements
 1. Implement automated backup with retention policies
-2. Enable HTTPS with automatic certificate renewal
-3. Add monitoring integration with existing infrastructure
+2. Add monitoring integration with existing infrastructure
+3. Consider enabling SeaDoc 2.0 and Notification Server
 4. Consider migration to Docker Swarm for HA capabilities
+
+## Upgrade History
+
+| Date | From | To | Notes |
+|------|------|-----|-------|
+| 2025-12-22 | 12.0.14 | 13.0.12 | Major upgrade, Redis cache, new config structure |
+
+See `seafile-13-upgrade-2025-12-22.md` for detailed upgrade documentation.
 
 ---
 
 *Document Created: September 25, 2025*
 *Based on PCT 103 Seafile deployment analysis and Docker Compose optimization*
-*Last Updated: September 25, 2025*
+*Last Updated: December 22, 2025 (Seafile 13.0 upgrade)*

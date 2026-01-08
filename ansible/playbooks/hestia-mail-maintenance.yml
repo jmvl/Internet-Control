@@ -134,7 +134,9 @@
 
     - name: Truncate large Nginx domain logs (>100MB)
       shell: |
-        find {{ nginx_log_dir }}/domains -name "*.log" -type f -size +100M -exec truncate -s 50M {} \; 2>/dev/null || true
+        find {{ nginx_log_dir }}/domains -name "*.log" -type f \
+          -size +100M -exec truncate -s 50M {} \; \
+          2>/dev/null || true
       tags: logs
 
     # ========================================
@@ -261,7 +263,10 @@
         for domain in accelior.com vega-messenger.com acmea.tech; do
           cert="/usr/local/hestia/data/users/*/ssl/mail.$domain.crt"
           if [ -f $cert ]; then
-            days=$(openssl x509 -in $cert -noout -enddate | awk -F= '{print $2}' | xargs -I {} date -d {} +%s | awk -v now=$(date +%s) '{print int(($1-now)/86400)}')
+            days=$(openssl x509 -in $cert -noout -enddate | \
+              awk -F= '{print $2}' | \
+              xargs -I {} date -d {} +%s | \
+              awk -v now=$(date +%s) '{print int(($1-now)/86400)}')
             echo "mail.$domain: $days days until expiration"
           fi
         done

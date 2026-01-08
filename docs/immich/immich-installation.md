@@ -7,7 +7,7 @@ Immich is a self-hosted photo and video management solution running on OMV NAS (
 - **Host**: OpenMediaVault NAS (192.168.1.9)
 - **Installation Method**: Docker containers
 - **Web Interface**: http://192.168.1.9:2283
-- **Current Version**: v1.138.1
+- **Current Version**: v2.3.1
 - **Database**: PostgreSQL 14.10 with pgvecto-rs extension
 
 ## Architecture
@@ -15,12 +15,12 @@ Immich is a self-hosted photo and video management solution running on OMV NAS (
 ### Container Stack
 | Container | Image | Status | Ports | Purpose |
 |-----------|-------|--------|-------|---------|
-| **immich_server** | ghcr.io/immich-app/immich-server:v1.138.1 | ✅ Healthy | 2283:2283 | Main application server |
-| **immich_postgres** | tensorchord/pgvecto-rs:pg14-v0.2.0 | ❌ Unhealthy* | 5432 (internal) | Database with vector search |
-| **immich_machine_learning** | ghcr.io/immich-app/immich-machine-learning:v1.138.1 | ✅ Healthy | Internal | AI recognition/tagging |
+| **immich_server** | ghcr.io/immich-app/immich-server:v2.3.1 | ✅ Healthy | 2283:2283 | Main application server |
+| **immich_postgres** | tensorchord/pgvecto-rs:pg14-v0.2.0 | ✅ Healthy | 5432 (internal) | Database with vector search |
+| **immich_machine_learning** | ghcr.io/immich-app/immich-machine-learning:v2.3.1 | ✅ Healthy | Internal | AI recognition/tagging |
 | **immich_redis** | redis:6.2-alpine | ✅ Healthy | 6379 (internal) | Cache and sessions |
 
-*PostgreSQL shows "unhealthy" status but is fully functional
+*Last updated: 2025-12-14 - Upgraded to v2.3.1
 
 ## Storage Configuration
 
@@ -77,7 +77,7 @@ The installation uses Docker containers managed through the OMV Docker plugin:
 # Approximate structure based on container inspection
 services:
   immich_server:
-    image: ghcr.io/immich-app/immich-server:v1.138.1
+    image: ghcr.io/immich-app/immich-server:v2.3.1
     ports:
       - "2283:2283"
     volumes:
@@ -95,7 +95,7 @@ services:
       POSTGRES_USER: postgres
 
   immich_machine_learning:
-    image: ghcr.io/immich-app/immich-machine-learning:v1.138.1
+    image: ghcr.io/immich-app/immich-machine-learning:v2.3.1
     volumes:
       - model-cache:/cache
 

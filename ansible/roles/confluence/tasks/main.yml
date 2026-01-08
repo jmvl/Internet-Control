@@ -24,7 +24,10 @@
 
 - name: Truncate large Confluence logs (idempotent)
   shell: |
-    find {{ confluence_logs }} -name "atlassian-confluence*.log" -type f -size +{{ confluence_log_max_size }} -exec truncate -s {{ confluence_log_truncate_size }} {} \; 2>/dev/null || true
+    find {{ confluence_logs }} -name "atlassian-confluence*.log" -type f \
+      -size +{{ confluence_log_max_size }} \
+      -exec truncate -s {{ confluence_log_truncate_size }} {} \; \
+      2>/dev/null || true
   register: confluence_truncate
   changed_when: confluence_truncate.rc == 0
   tags: logs,confluence_logs

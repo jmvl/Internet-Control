@@ -48,7 +48,9 @@
 
 - name: Truncate large HestiaCP logs (idempotent)
   shell: |
-    find {{ hestia_log_dir }} -name "*.log" -type f -size +{{ hestia_log_max_size }} -exec truncate -s {{ hestia_log_truncate_size }} {} \;
+    find {{ hestia_log_dir }} -name "*.log" -type f \
+      -size +{{ hestia_log_max_size }} \
+      -exec truncate -s {{ hestia_log_truncate_size }} {} \;
   register: hestia_truncate
   changed_when: hestia_truncate.rc == 0
   ignore_errors: yes
@@ -76,7 +78,9 @@
 
 - name: Truncate large Apache logs (idempotent)
   shell: |
-    find {{ hestia_apache_log_dir }} -name "*.log" -type f -size +{{ hestia_apache_log_max_size }} -exec truncate -s {{ hestia_apache_log_truncate_size }} {} \;
+    find {{ hestia_apache_log_dir }} -name "*.log" -type f \
+      -size +{{ hestia_apache_log_max_size }} \
+      -exec truncate -s {{ hestia_apache_log_truncate_size }} {} \;
   register: apache_truncate
   changed_when: apache_truncate.rc == 0
   tags: logs,apache_logs
@@ -104,7 +108,10 @@
 
 - name: Truncate large Nginx domain logs (idempotent)
   shell: |
-    find {{ hestia_nginx_log_dir }}/domains -name "*.log" -type f -size +{{ hestia_nginx_log_max_size }} -exec truncate -s {{ hestia_nginx_log_truncate_size }} {} \; 2>/dev/null || true
+    find {{ hestia_nginx_log_dir }}/domains -name "*.log" -type f \
+      -size +{{ hestia_nginx_log_max_size }} \
+      -exec truncate -s {{ hestia_nginx_log_truncate_size }} {} \; \
+      2>/dev/null || true
   register: nginx_truncate
   changed_when: nginx_truncate.rc == 0
   tags: logs,nginx_logs
@@ -132,7 +139,9 @@
 
 - name: Truncate large mail logs (idempotent)
   shell: |
-    find {{ hestia_mail_log_dir }} -name "mainlog" -o -name "rejectlog" -type f -size +{{ hestia_mail_log_max_size }} -exec truncate -s {{ hestia_mail_log_truncate_size }} {} \;
+    find {{ hestia_mail_log_dir }} \( -name "mainlog" -o -name "rejectlog" \) \
+      -type f -size +{{ hestia_mail_log_max_size }} \
+      -exec truncate -s {{ hestia_mail_log_truncate_size }} {} \;
   register: mail_truncate
   changed_when: mail_truncate.rc == 0
   ignore_errors: yes
@@ -212,7 +221,10 @@
     {% for domain in hestia_mail_domains %}
     cert="/usr/local/hestia/data/users/*/ssl/mail.{{ domain }}.crt"
     if [ -f $cert ]; then
-      days=$(openssl x509 -in $cert -noout -enddate | awk -F= '{print $2}' | xargs -I {} date -d {} +%s | awk -v now=$(date +%s) '{print int(($1-now)/86400)}')
+      days=$(openssl x509 -in $cert -noout -enddate | \
+        awk -F= '{print $2}' | \
+        xargs -I {} date -d {} +%s | \
+        awk -v now=$(date +%s) '{print int(($1-now)/86400)}')
       echo "mail.{{ domain }}: $days days until expiration"
     fi
     {% endfor %}

@@ -103,7 +103,9 @@
 
     - name: Remove old kernels (keep last 2)
       shell: |
-        dpkg -l 'linux-image-*' | awk '/^ii/{print $2}' | grep -v $(uname -r) | head -n -2 | xargs --no-run-if-empty apt-get -y purge
+        dpkg -l 'linux-image-*' | awk '/^ii/{print $2}' | \
+        grep -v $(uname -r) | head -n -2 | \
+        xargs --no-run-if-empty apt-get -y purge
       ignore_errors: yes
       when: ansible_distribution == 'Debian' or ansible_distribution == 'Ubuntu'
       tags: cleanup

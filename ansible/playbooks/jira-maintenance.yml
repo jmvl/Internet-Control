@@ -82,7 +82,9 @@
 
     - name: Truncate large JIRA logs (>500MB)
       shell: |
-        find {{ jira_logs }} -name "atlassian-jira*.log" -type f -size +500M -exec truncate -s 200M {} \; 2>/dev/null || true
+        find {{ jira_logs }} -name "atlassian-jira*.log" -type f \
+          -size +500M -exec truncate -s 200M {} \; \
+          2>/dev/null || true
       tags: logs
 
     - name: Find old Catalina logs

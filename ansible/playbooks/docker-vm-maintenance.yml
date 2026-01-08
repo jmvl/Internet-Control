@@ -196,7 +196,9 @@
       tags: health
 
     - name: Get Docker container health status
-      shell: docker ps --format "table {{ "{{" }}.Names{{ "}}" }}\t{{ "{{" }}.Status{{ "}}" }}" | grep -E "(unhealthy|restarting)" || true
+      shell: |
+        docker ps --format "table {{ "{{" }}.Names{{ "}}" }}\t{{ "{{" }}.Status{{ "}}" }}" | \
+        grep -E "(unhealthy|restarting)" || true
       register: unhealthy_containers
       changed_when: false
       tags: health
@@ -354,7 +356,8 @@
 
           SYSTEM UPDATES:
           Updates Applied: {{ apt_updates.changed | default(false) }}
-          Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if (reboot_required is defined and reboot_required.stat.exists) else 'NO' }}
+          Reboot Required: {{ 'YES - MANUAL REBOOT NEEDED' if (reboot_required is defined
+          - '                                      and reboot_required.stat.exists) else 'NO' }}
 
           LOG CLEANUP:
           System Journals: {{ journal_cleanup.changed | default(false) }}
