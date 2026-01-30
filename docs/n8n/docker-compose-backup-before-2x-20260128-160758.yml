@@ -1,0 +1,63 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:1.116.2
+    restart: always
+    ports:
+      - 5678:5678
+    environment:
+      - N8N_ENCRYPTION_KEY=rqWlh/0WNeDu6sbKMEMbvm3onF7D7gc6
+      - WEBHOOK_URL=https://n8n.accelior.com/
+      - N8N_HOST=n8n.accelior.com
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - N8N_PROXY_HOPS=1
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=aws-0-eu-central-1.pooler.supabase.com
+      - DB_POSTGRESDB_PORT=6543
+      - DB_POSTGRESDB_DATABASE=postgres
+      - DB_POSTGRESDB_USER=postgres.bbgyrvkxejtrnttoijlt
+      - DB_POSTGRESDB_PASSWORD=qdjCUK1DI1x5umDG
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
+      - GENERIC_TIMEZONE=Europe/Berlin
+      - NODE_ENV=production
+      # Node.js memory optimization settings
+      - NODE_OPTIONS=--max-old-space-size=768
+      # N8N execution data management
+      - N8N_EXECUTIONS_DATA_MAX_AGE=168
+      - N8N_EXECUTIONS_DATA_PRUNE=true
+      - N8N_EXECUTIONS_DATA_PRUNE_MAX_COUNT=1000
+    volumes:
+      - n8n_user_data:/home/node/.n8n
+    depends_on:
+      - gotenberg
+    # Resource limits based on PCT optimization guide
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: 1.0
+        reservations:
+          memory: 512M
+          cpus: 0.5
+
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    restart: always
+    command:
+      - gotenberg
+      - --chromium-disable-web-security
+      - --chromium-allow-list=file:///tmp/.*
+      - --chromium-disable-routes
+      - --chromium-ignore-certificate-errors=true
+    # Resource limits for gotenberg to prevent restart issues
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: 0.5
+        reservations:
+          memory: 256M
+          cpus: 0.25
+
+volumes:
+  n8n_user_data:

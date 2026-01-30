@@ -18,7 +18,7 @@ The 502 error occurs because:
 
 ### Step 1: Access Nginx Proxy Manager
 ```
-http://192.168.1.9:81
+http://192.168.1.121:81
 ```
 
 ### Step 2: Fix mail.acmea.tech Configuration

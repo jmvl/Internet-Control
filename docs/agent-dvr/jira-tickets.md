@@ -373,7 +373,7 @@ Configure Nginx Proxy Manager on OMV NAS (192.168.1.9) to provide secure externa
 - Nginx Proxy Manager running on OMV NAS (192.168.1.9)
 - Container: `nginx-proxy-manager-nginx-proxy-manager-1`
 - Status: Running, Up 3 weeks
-- Admin interface: http://192.168.1.9:81
+- Admin interface: http://192.168.1.121:81
 - Currently proxying: mail services, ntop, other internal services
 - cam.home.accelior.com domain: Not yet configured
 
@@ -478,7 +478,7 @@ add_header X-XSS-Protection "1; mode=block" always;
 - **IFS-XXX**: Agent DVR installation completed (blocker)
 - DNS access to configure A record for cam.home.accelior.com
 - OPNsense firewall configuration access
-- NPM admin access (http://192.168.1.9:81)
+- NPM admin access (http://192.168.1.121:81)
 
 ## Prerequisites
 1. ☐ Agent DVR running on 192.168.1.20:8090
@@ -529,7 +529,7 @@ Redirect Target Port: 443
 #### 3.1: Access NPM Admin Interface
 ```bash
 # Open web browser
-URL: http://192.168.1.9:81
+URL: http://192.168.1.121:81
 
 # Login with admin credentials
 # (If default: admin@example.com / changeme - CHANGE IMMEDIATELY)
@@ -869,7 +869,7 @@ Solutions:
 
 ### If Configuration Fails
 ```
-1. Access NPM admin: http://192.168.1.9:81
+1. Access NPM admin: http://192.168.1.121:81
 2. Navigate to Hosts → Proxy Hosts
 3. Find cam.home.accelior.com entry
 4. Click three-dot menu → Delete

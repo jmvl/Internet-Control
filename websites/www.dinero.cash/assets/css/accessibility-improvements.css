@@ -37,43 +37,72 @@
    FOCUS INDICATORS
    ========================================================================== */
 
-/* Improve focus visibility for keyboard navigation */
-.button:focus,
-a:focus,
-input:focus,
-textarea:focus,
-select:focus,
-button:focus {
+/* Focus indicators for keyboard navigation (only shows for keyboard, not mouse) */
+:focus-visible {
   outline: 3px solid #4d90fe;
   outline-offset: 2px;
 }
 
-/* Specific button focus styles */
-.button.with-margins:focus,
-.button.light:focus,
-.button.small:focus,
-.button.outline:focus {
-  outline: 3px solid #4d90fe;
-  outline-offset: 3px;
+/* Remove outline for mouse-only interactions */
+:focus:not(:focus-visible) {
+  outline: none;
 }
 
-/* Nav link focus */
-.nav-link:focus,
-.footer-link:focus {
-  outline: 2px solid #4d90fe;
-  outline-offset: 2px;
+/* Ensure all interactive elements can receive focus */
+a, button, .button, .nav-link, .feature-box, input, textarea, select {
+  focus-visible: auto;
+}
+
+/* Navigation focus styles */
+.nav-link:focus-visible,
+.footer-link:focus-visible {
+  outline: 3px solid #4d90fe;
+  outline-offset: 4px;
+  border-radius: 4px;
   background-color: rgba(77, 144, 254, 0.1);
 }
 
-/* Feature box focus for keyboard users */
-.feature-box:focus {
+/* Menu button focus */
+.menu-button:focus-visible {
+  outline: 3px solid #4d90fe;
+  outline-offset: 2px;
+}
+
+/* Button focus styles */
+.button:focus-visible,
+button:focus-visible {
   outline: 3px solid #4d90fe;
   outline-offset: 3px;
+  box-shadow: 0 0 0 2px rgba(77, 144, 254, 0.3);
+}
+
+/* Specific button focus styles */
+.button.with-margins:focus-visible,
+.button.light:focus-visible,
+.button.small:focus-visible,
+.button.outline:focus-visible {
+  outline: 3px solid #4d90fe;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 2px rgba(77, 144, 254, 0.3);
+}
+
+/* Feature box focus for keyboard users */
+.feature-box:focus-visible {
+  outline: 3px solid #4d90fe;
+  outline-offset: 4px;
 }
 
 /* Tab link focus */
-.tab-link:focus {
+.tab-link:focus-visible {
   outline: 2px solid #4d90fe;
+  outline-offset: 2px;
+}
+
+/* Form input focus styles */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid #4d90fe;
   outline-offset: 2px;
 }
 
@@ -153,8 +182,8 @@ button:focus {
    ========================================================================== */
 
 /* Improve form input visibility */
-.text-field:focus,
-.text-area:focus {
+.text-field:focus-visible,
+.text-area:focus-visible {
   border-color: #4d90fe;
   box-shadow: 0 0 0 3px rgba(77, 144, 254, 0.1);
 }
@@ -165,8 +194,8 @@ button:focus {
   border-color: #dc3545;
 }
 
-.text-field[aria-invalid="true"]:focus,
-.text-area[aria-invalid="true"]:focus {
+.text-field[aria-invalid="true"]:focus-visible,
+.text-area[aria-invalid="true"]:focus-visible {
   box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
 }
 
@@ -185,24 +214,24 @@ a:hover,
 }
 
 /* Improve visibility of slider navigation */
-.heroslider-left:focus,
-.heroslider-right:focus {
+.heroslider-left:focus-visible,
+.heroslider-right:focus-visible {
   outline: 2px solid #4d90fe;
   outline-offset: 2px;
   opacity: 1;
 }
 
 /* Feature popup controls focus */
-.featuresslider-left:focus,
-.featuresslider-right:focus {
+.featuresslider-left:focus-visible,
+.featuresslider-right:focus-visible {
   outline: 2px solid #4d90fe;
   outline-offset: 2px;
 }
 
 /* Close popup button focus */
-.demo-popup-close:focus,
-.contact-popup-close:focus,
-.features-popup-close:focus {
+.demo-popup-close:focus-visible,
+.contact-popup-close:focus-visible,
+.features-popup-close:focus-visible {
   outline: 2px solid #4d90fe;
   outline-offset: 2px;
 }

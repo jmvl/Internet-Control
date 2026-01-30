@@ -100,7 +100,7 @@ flarectl dns create --zone vidsnap.me --name _dmarc --type TXT --content "v=DMAR
 
 NPM at 192.168.1.9 handles SSL termination for webmail access.
 
-**Proxy Host Settings** (configured via http://192.168.1.9:81):
+**Proxy Host Settings** (configured via http://192.168.1.121:81):
 - **Domain Names**: mail.vidsnap.me
 - **Scheme**: https
 - **Forward Hostname/IP**: 192.168.1.30

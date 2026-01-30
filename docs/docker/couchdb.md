@@ -150,7 +150,7 @@ nslookup couchdb.acmea.tech 8.8.8.8
 #### SSL Certificate Errors
 ```bash
 # Check NPM certificate status via web UI
-# http://192.168.1.9:81
+# http://192.168.1.121:81
 
 # Force certificate renewal (if needed)
 ssh root@192.168.1.9 'docker exec nginx-proxy-manager-nginx-proxy-manager-1 \

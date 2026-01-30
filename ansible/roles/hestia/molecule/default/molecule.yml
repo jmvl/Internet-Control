@@ -7,25 +7,27 @@ platforms:
   - name: debian12-hestia
     image: debian:12
     pre_build_image: true
-    command: /sbin/init
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    command: sleep infinity
     tmpfs:
-      - /run
       - /tmp
     capabilities:
       - SYS_ADMIN
-    privileged: true
 provisioner:
   name: ansible
   config_options:
     defaults:
       callbacks_enabled: profile_tasks,timer
       stdout_callback: yaml
+  playbooks:
+    prepare: prepare.yml
+    converge: converge.yml
+    verify: verify.yml
   inventory:
+    group_vars: {}
     host_vars:
       debian12-hestia:
         ansible_python_interpreter: /usr/bin/python3
+        ansible_connection: docker
 verifier:
   name: ansible
 scenario:

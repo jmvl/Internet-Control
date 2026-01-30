@@ -52,7 +52,7 @@ The SSL configuration is now properly set up for `mail.acmea.tech`. The mail dom
 ## One Remaining Step for Full External Access
 
 ### Update Nginx Proxy Manager Configuration
-You still need to update the Nginx Proxy Manager at `http://192.168.1.9:81`:
+You still need to update the Nginx Proxy Manager at `http://192.168.1.121:81`:
 
 1. **Go to**: Hosts → Proxy Hosts
 2. **Find**: `mail.acmea.tech` entry

@@ -1,0 +1,3 @@
+# Infrastructure database auto-update
+# Runs every 5 minutes to scrape PVE2 for changes
+*/5 * * * * /Users/jm/Codebase/internet-control/infrastructure-db/update-infrastructure.sh >/dev/null 2>&1

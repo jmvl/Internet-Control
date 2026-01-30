@@ -62,7 +62,7 @@ Complete reverse proxy setup documentation covering:
 - Backend: `http://192.168.1.20:8090`
 - SSL: Let's Encrypt (auto-renewal)
 - NPM Host: OMV NAS (192.168.1.9)
-- Admin Interface: `http://192.168.1.9:81`
+- Admin Interface: `http://192.168.1.121:81`
 
 #### 3. [jira-tickets.md](./jira-tickets.md)
 **JIRA Implementation Tickets for IFS Project**

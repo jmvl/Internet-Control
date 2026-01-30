@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PVE2 Infrastructure Geek Map - Live</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a1a12;
+            --bg-card: #0f2418;
+            --bg-elevated: #142a1e;
+            --accent-green: #00cc66;
+            --accent-green-dark: #00a352;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-tertiary: #888888;
+            --border-subtle: #1a3326;
+            --color-critical: #ff4d4d;
+            --color-high: #ffb347;
+            --color-medium: #ffd700;
+            --color-low: #4CAF94;
+
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --space-xl: 48px;
+            --space-2xl: 64px;
+
+            --transition-standard: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-bounce: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(0, 204, 102, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(0, 204, 102, 0.03) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 24px;
+            color: var(--accent-green);
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: var(--space-lg);
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: var(--space-2xl) 0;
+            border-bottom: 1px solid var(--border-subtle);
+            margin-bottom: var(--space-xl);
+            animation: fadeInDown 600ms ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .header .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: var(--accent-green);
+        }
+
+        .header .meta {
+            display: flex;
+            justify-content: center;
+            gap: var(--space-xl);
+            margin-top: var(--space-md);
+            flex-wrap: wrap;
+        }
+
+        .header .meta-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: 14px;
+        }
+
+        .header .meta-item .value {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .last-updated {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-top: var(--space-sm);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-xl);
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: var(--space-lg);
+            text-align: center;
+            animation: fadeInUp 600ms ease-out backwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stat-card:nth-child(1) { animation-delay: 100ms; }
+        .stat-card:nth-child(2) { animation-delay: 150ms; }
+        .stat-card:nth-child(3) { animation-delay: 200ms; }
+        .stat-card:nth-child(4) { animation-delay: 250ms; }
+        .stat-card:nth-child(5) { animation-delay: 300ms; }
+
+        .stat-card .value {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 48px;
+            font-weight: 800;
+            color: var(--accent-green);
+            line-height: 1;
+            margin-bottom: var(--space-sm);
+        }
+
+        .stat-card .label {
+            font-size: 14px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Network Topology */
+        .network-topology {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-lg);
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: var(--space-xl);
+            overflow-x: auto;
+            animation: fadeInUp 700ms ease-out 350ms backwards;
+        }
+
+        .network-node {
+            padding: var(--space-md) var(--space-lg);
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            text-align: center;
+            min-width: 140px;
+            transition: all var(--transition-standard);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .network-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 204, 102, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .network-node:hover::before {
+            left: 100%;
+        }
+
+        .network-node:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 204, 102, 0.2);
+        }
+
+        .network-node.primary {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 20px rgba(0, 204, 102, 0.2);
+        }
+
+        .network-node .name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .network-node .ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .network-arrow {
+            color: var(--accent-green);
+            font-size: 24px;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: var(--space-xl);
+            padding: var(--space-md);
+            background: var(--bg-card);
+            border-radius: 12px;
+            margin-bottom: var(--space-xl);
+            flex-wrap: wrap;
+            animation: fadeInUp 700ms ease-out 400ms backwards;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            font-size: 13px;
+        }
+
+        .legend-item .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .criticality {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .criticality.critical { background: rgba(255, 77, 77, 0.2); color: var(--color-critical); }
+        .criticality.high { background: rgba(255, 179, 71, 0.2); color: var(--color-high); }
+        .criticality.medium { background: rgba(255, 215, 0, 0.2); color: var(--color-medium); }
+        .criticality.low { background: rgba(76, 175, 148, 0.2); color: var(--color-low); }
+
+        /* Infrastructure Grid */
+        .infra-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: var(--space-md);
+        }
+
+        .infra-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all var(--transition-standard);
+            cursor: pointer;
+            animation: fadeInUp 600ms ease-out backwards;
+            position: relative;
+        }
+
+        .infra-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-green), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-standard);
+        }
+
+        .infra-card:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 204, 102, 0.15);
+        }
+
+        .infra-card:hover::before {
+            opacity: 1;
+        }
+
+        .infra-card[data-has-docker="true"]::after {
+            content: 'DOCKER';
+            position: absolute;
+            top: var(--space-sm);
+            right: var(--space-sm);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--accent-green);
+            background: rgba(0, 204, 102, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .infra-card-header {
+            padding: var(--space-md) var(--space-lg);
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .infra-card-header .status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .infra-card-header .status.active, .infra-card-header .status.running {
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .infra-card-header .status.stopped {
+            background: var(--color-critical);
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 10px var(--accent-green); }
+            50% { box-shadow: 0 0 20px var(--accent-green), 0 0 30px var(--accent-green); }
+        }
+
+        .infra-card-header .type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            padding: 4px 8px;
+            background: rgba(0, 204, 102, 0.1);
+            border-radius: 4px;
+        }
+
+        .infra-card-header .name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .infra-card-body {
+            padding: var(--space-md) var(--space-lg);
+        }
+
+        .infra-card-body .ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-xs);
+        }
+
+        .infra-card-body .resources {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .infra-card-body .description {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-md);
+            line-height: 1.4;
+        }
+
+        .infra-card-body .docker-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-green);
+            background: rgba(0, 204, 102, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 26, 18, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-lg);
+            opacity: 0;
+            visibility: hidden;
+            transition: all var(--transition-standard);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            width: 100%;
+            max-width: 1200px;
+            max-height: 90vh;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: scale(0.9) translateY(20px);
+            transition: all var(--transition-bounce);
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            padding: var(--space-lg);
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header .title-group {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .modal-header .status {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .modal-header .status.active, .modal-header .status.running {
+            background: var(--accent-green);
+            box-shadow: 0 0 15px var(--accent-green);
+        }
+
+        .modal-header .status.stopped {
+            background: var(--color-critical);
+        }
+
+        .modal-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-header .close-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all var(--transition-standard);
+        }
+
+        .modal-header .close-btn:hover {
+            background: rgba(255, 77, 77, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .modal-header .close-btn svg {
+            width: 20px;
+            height: 20px;
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: var(--space-lg);
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .modal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-body::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .modal-body::-webkit-scrollbar-thumb {
+            background: var(--border-subtle);
+            border-radius: 4px;
+        }
+
+        .modal-body::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-green);
+        }
+
+        .container-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+            padding: var(--space-lg);
+            background: var(--bg-primary);
+            border-radius: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-item .label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            letter-spacing: 0.5px;
+        }
+
+        .info-item .value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .docker-section {
+            margin-top: var(--space-lg);
+        }
+
+        .docker-section-title {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .docker-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--space-md);
+        }
+
+        .docker-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all var(--transition-standard);
+            animation: slideIn 400ms ease-out backwards;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .docker-card:hover {
+            border-color: var(--accent-green);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 204, 102, 0.1);
+        }
+
+        .docker-card-header {
+            padding: var(--space-md);
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .docker-card-header .status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .docker-card-header .status.healthy {
+            background: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+        }
+
+        .docker-card-header .status.unhealthy {
+            background: var(--color-critical);
+        }
+
+        .docker-card-header .status.running {
+            background: var(--color-high);
+        }
+
+        .docker-card-header .name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent-green);
+            flex: 1;
+        }
+
+        .docker-card-body {
+            padding: var(--space-md);
+        }
+
+        .docker-card-body .image {
+            font-size: 12px;
+            color: var(--text-tertiary);
+            margin-bottom: var(--space-sm);
+        }
+
+        .docker-card-body .ports {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .port-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            background: rgba(0, 204, 102, 0.1);
+            color: var(--accent-green);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl);
+            color: var(--text-tertiary);
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: var(--space-lg);
+            right: var(--space-lg);
+            padding: var(--space-sm) var(--space-lg);
+            background: var(--accent-green);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-standard);
+            z-index: 100;
+        }
+
+        .refresh-btn:hover {
+            background: var(--accent-green-dark);
+            transform: translateY(-2px);
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 32px;
+            }
+
+            .infra-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .network-topology {
+                flex-direction: column;
+            }
+
+            .network-arrow {
+                transform: rotate(90deg);
+            }
+
+            .modal-content {
+                max-height: 95vh;
+            }
+
+            .docker-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Stagger animation delays for cards */
+        .infra-card:nth-child(1) { animation-delay: 500ms; }
+        .infra-card:nth-child(2) { animation-delay: 550ms; }
+        .infra-card:nth-child(3) { animation-delay: 600ms; }
+        .infra-card:nth-child(4) { animation-delay: 650ms; }
+        .infra-card:nth-child(5) { animation-delay: 700ms; }
+        .infra-card:nth-child(6) { animation-delay: 750ms; }
+        .infra-card:nth-child(7) { animation-delay: 800ms; }
+        .infra-card:nth-child(8) { animation-delay: 850ms; }
+        .infra-card:nth-child(9) { animation-delay: 900ms; }
+        .infra-card:nth-child(10) { animation-delay: 950ms; }
+        .infra-card:nth-child(11) { animation-delay: 1000ms; }
+        .infra-card:nth-child(12) { animation-delay: 1050ms; }
+    </style>
+</head>
+<body>
+    <!-- Loading state -->
+    <div id="loading" class="loading">Loading infrastructure data</div>
+
+    <!-- Main content (hidden until loaded) -->
+    <div id="app" style="display: none;">
+        <!-- Animated Particles Background -->
+        <div class="particles" id="particles"></div>
+
+        <div class="container">
+            <!-- Header -->
+            <header class="header">
+                <h1>PVE2 Infrastructure</h1>
+                <p class="subtitle">192.168.1.10 // Proxmox Virtualization Platform // Click any card to drill down</p>
+                <div class="meta">
+                    <div class="meta-item">
+                        <span>Host:</span>
+                        <span class="value">pve2.accelior.com</span>
+                    </div>
+                    <div class="meta-item">
+                        <span>Type:</span>
+                        <span class="value">Physical Server</span>
+                    </div>
+                    <div class="meta-item">
+                        <span>Status:</span>
+                        <span class="value">Active</span>
+                    </div>
+                    <div class="meta-item">
+                        <span>LXC Containers:</span>
+                        <span class="value" id="meta-lxc">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span>VMs:</span>
+                        <span class="value" id="meta-vm">-</span>
+                    </div>
+                    <div class="meta-item">
+                        <span>Docker:</span>
+                        <span class="value" id="meta-docker">-</span>
+                    </div>
+                </div>
+                <div class="last-updated">Last updated: <span id="last-updated">-</span></div>
+            </header>
+
+            <!-- Stats -->
+            <div class="stats-grid" id="stats-grid">
+                <!-- Stats will be injected here -->
+            </div>
+
+            <!-- Network Topology -->
+            <div class="network-topology">
+                <div class="network-node">
+                    <div class="name">OpenWrt</div>
+                    <div class="ip">192.168.1.2</div>
+                </div>
+                <span class="network-arrow">→</span>
+                <div class="network-node">
+                    <div class="name">OPNsense</div>
+                    <div class="ip">192.168.1.3</div>
+                </div>
+                <span class="network-arrow">→</span>
+                <div class="network-node primary">
+                    <div class="name">PVE2</div>
+                    <div class="ip">192.168.1.10</div>
+                </div>
+                <span class="network-arrow">→</span>
+                <div class="network-node">
+                    <div class="name">LXC/VM</div>
+                    <div class="ip">.1.20-.151</div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="dot" style="background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green);"></div>
+                    <span>Active/Running</span>
+                </div>
+                <div class="legend-item">
+                    <div class="dot" style="background: var(--color-critical);"></div>
+                    <span>Stopped</span>
+                </div>
+                <div class="legend-item">
+                    <span class="criticality critical">Critical</span>
+                </div>
+                <div class="legend-item">
+                    <span class="criticality high">High</span>
+                </div>
+                <div class="legend-item">
+                    <span class="criticality medium">Medium</span>
+                </div>
+                <div class="legend-item">
+                    <span class="criticality low">Low</span>
+                </div>
+            </div>
+
+            <!-- Infrastructure Grid -->
+            <div class="infra-grid" id="infra-grid">
+                <!-- Cards will be injected here -->
+            </div>
+        </div>
+
+        <!-- Refresh Button -->
+        <button class="refresh-btn" id="refresh-btn" onclick="refreshData()">
+            ↻ Refresh Data
+        </button>
+
+        <script>
+            // ... existing code ...
+
+            // Refresh data from PVE2 (update database first, then reload)
+            async function refreshData() {
+                await loadData(true);
+            }
+
+            // Initialize
+            loadData();
+        </script>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="title-group">
+                    <div class="status" id="modal-status"></div>
+                    <h2 id="modal-title">Container Name</h2>
+                </div>
+                <button class="close-btn" onclick="closeModal()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Content injected by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API base URL
+        const API_BASE = window.location.origin + '/api';
+
+        // Data store
+        let hostsData = [];
+        let containersData = {};
+        let statsData = {};
+
+        // Create particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                container.appendChild(particle);
+            }
+        }
+
+        // Format RAM in MB to GB
+        function formatRAM(mb) {
+            if (!mb) return '-';
+            if (mb >= 1024) {
+                return (mb / 1024).toFixed(1) + 'GB';
+            }
+            return mb + 'MB';
+        }
+
+        // Get status class
+        function getStatusClass(status) {
+            if (status === 'active' || status === 'running') return 'active';
+            if (status === 'stopped') return 'stopped';
+            return '';
+        }
+
+        // Get criticality class
+        function getCriticalityClass(criticality) {
+            if (!criticality) return 'low';
+            return criticality.toLowerCase();
+        }
+
+        // Render stats
+        function renderStats(stats) {
+            const statsGrid = document.getElementById('stats-grid');
+            statsGrid.innerHTML = '';
+
+            const statItems = [
+                { label: 'LXC Containers', value: stats.hosts?.lxc || 0 },
+                { label: 'Virtual Machines', value: stats.hosts?.vm || 0 },
+                { label: 'Docker Containers', value: stats.docker?.containers || 0 },
+                { label: 'Running Services', value: stats.services?.running || 0 },
+                { label: 'Docker Networks', value: stats.docker?.networks || 0 },
+            ];
+
+            statItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.innerHTML = `
+                    <div class="value">${item.value}</div>
+                    <div class="label">${item.label}</div>
+                `;
+                statsGrid.appendChild(card);
+            });
+
+            // Update meta values
+            document.getElementById('meta-lxc').textContent = stats.hosts?.lxc || 0;
+            document.getElementById('meta-vm').textContent = stats.hosts?.vm || 0;
+            document.getElementById('meta-docker').textContent = stats.docker?.containers || 0;
+        }
+
+        // Render infrastructure cards
+        function renderCards(hosts) {
+            const grid = document.getElementById('infra-grid');
+            grid.innerHTML = '';
+
+            // Filter to only show LXC and VM containers
+            const containers = hosts.filter(h => h.host_type === 'lxc' || h.host_type === 'vm');
+
+            containers.forEach(host => {
+                const hasDocker = host.host_type === 'lxc' && ['docker-debian', 'dev-ai'].includes(host.hostname);
+                const statusClass = getStatusClass(host.status);
+                const criticalityClass = getCriticalityClass(host.criticality);
+                const ip = host.management_ip || host.ip || 'No IP';
+                const resources = host.cpu_cores && host.total_ram_mb
+                    ? `${host.cpu_cores} cores • ${formatRAM(host.total_ram_mb)} RAM`
+                    : 'VMID ' + host.vmid;
+
+                const card = document.createElement('div');
+                card.className = 'infra-card';
+                card.setAttribute('data-has-docker', hasDocker.toString());
+                card.setAttribute('data-hostname', host.hostname);
+                card.onclick = () => openModal(host.hostname);
+
+                card.innerHTML = `
+                    <div class="infra-card-header">
+                        <div class="status ${statusClass}"></div>
+                        <span class="type">${host.host_type}</span>
+                        <span class="name">${host.hostname}</span>
+                    </div>
+                    <div class="infra-card-body">
+                        <div class="ip">${ip}</div>
+                        <div class="resources">${resources}</div>
+                        <p class="description">${host.purpose || ''}</p>
+                        ${hasDocker ? `<div class="docker-count">🐳 Docker Host</div>` : ''}
+                        <span class="criticality ${criticalityClass}">${host.criticality || 'Medium'}</span>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+        }
+
+        // Load data from API
+        async function loadData(refreshFromServer = false) {
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) refreshBtn.disabled = true;
+
+            try:
+                // If refreshing from server, trigger database update first
+                if (refreshFromServer) {
+                    const refreshResponse = await fetch(`${API_BASE}/refresh`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!refreshResponse.ok) {
+                        throw new Error('Database refresh failed');
+                    }
+
+                    // Wait a moment for database to be updated
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+
+                // Load all data in parallel
+                const [hosts, stats, containers] = await Promise.all([
+                    fetch(`${API_BASE}/hosts`).then(r => r.json()),
+                    fetch(`${API_BASE}/stats`).then(r => r.json()),
+                    fetch(`${API_BASE}/containers`).then(r => r.json()),
+                ]);
+
+                hostsData = hosts;
+                statsData = stats;
+
+                // Index containers by host
+                containersData = {};
+                containers.forEach(c => {
+                    if (!containersData[c.docker_host_id]) {
+                        containersData[c.docker_host_id] = [];
+                    }
+                    containersData[c.docker_host_id].push(c);
+                });
+
+                // Update UI
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('last-updated').textContent = new Date().toLocaleString();
+
+                renderStats(stats);
+                renderCards(hosts);
+
+                createParticles();
+
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                document.getElementById('loading').innerHTML = 'Error loading data: ' + error.message;
+            } finally {
+                if (refreshBtn) refreshBtn.disabled = false;
+            }
+        }
+
+        // Open modal for host details
+        async function openModal(hostname) {
+            const host = hostsData.find(h => h.hostname === hostname);
+            if (!host) return;
+
+            const modal = document.getElementById('modal');
+            const statusEl = document.getElementById('modal-status');
+            const titleEl = document.getElementById('modal-title');
+            const bodyEl = document.getElementById('modal-body');
+
+            // Update header
+            statusEl.className = 'status ' + getStatusClass(host.status);
+            titleEl.textContent = host.hostname;
+
+            // Build content
+            let content = '';
+
+            // Container info
+            content += '<div class="container-info">';
+            content += `<div class="info-item"><span class="label">Type</span><span class="value">${host.host_type}</span></div>`;
+            content += `<div class="info-item"><span class="label">IP Address</span><span class="value">${host.management_ip || '-'}</span></div>`;
+            content += `<div class="info-item"><span class="label">VMID</span><span class="value">${host.vmid || '-'}</span></div>`;
+            if (host.cpu_cores && host.total_ram_mb) {
+                content += `<div class="info-item"><span class="label">Resources</span><span class="value">${host.cpu_cores} cores • ${formatRAM(host.total_ram_mb)} RAM</span></div>`;
+            }
+            content += `<div class="info-item"><span class="label">Status</span><span class="value" style="color: ${host.status === 'active' ? 'var(--accent-green)' : 'var(--color-critical)'}">${host.status.toUpperCase()}</span></div>`;
+            content += '</div>';
+
+            content += `<p style="margin-bottom: var(--space-lg); color: var(--text-tertiary);">${host.purpose || 'No description'}</p>`;
+
+            // Docker containers for this host
+            if (host.docker_host_id && containersData[host.docker_host_id]) {
+                const containers = containersData[host.docker_host_id];
+
+                content += '<div class="docker-section">';
+                content += '<div class="docker-section-title">';
+                content += '🐳 Docker Containers (' + containers.length + ')';
+                content += '</div>';
+                content += '<div class="docker-grid">';
+
+                containers.forEach((container, index) => {
+                    const ports = container.ports ? JSON.parse(container.ports) : [];
+
+                    content += '<div class="docker-card" style="animation-delay: ' + (index * 50) + 'ms;">';
+                    content += '<div class="docker-card-header">';
+                    content += `<div class="status ${container.health_status || container.status}"></div>`;
+                    content += `<span class="name">${container.container_name}</span>`;
+                    content += '</div>';
+                    content += '<div class="docker-card-body">';
+                    content += `<div class="image">${container.image}${container.image_tag ? ':' + container.image_tag : ''}</div>`;
+                    if (ports.length > 0) {
+                        content += '<div class="ports">';
+                        ports.forEach(port => {
+                            content += `<span class="port-tag">${port}</span>`;
+                        });
+                        content += '</div>';
+                    }
+                    content += '</div>';
+                    content += '</div>';
+                });
+
+                content += '</div></div>';
+            }
+
+            // Empty state
+            if (!host.docker_host_id || !containersData[host.docker_host_id]) {
+                content += '<div class="empty-state">';
+                content += '<p>No Docker containers in this LXC</p>';
+                content += '</div>';
+            }
+
+            bodyEl.innerHTML = content;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close modal
+        function closeModal() {
+            const modal = document.getElementById('modal');
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        // Event listeners
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // Initialize
+        loadData();
+    </script>
+</body>
+</html>

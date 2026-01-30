@@ -25,7 +25,7 @@ Internet (External Clients)
 ### Nginx Proxy Manager Details
 - **Host**: OMV NAS (192.168.1.9)
 - **Container**: nginx-proxy-manager-nginx-proxy-manager-1
-- **Admin Interface**: http://192.168.1.9:81
+- **Admin Interface**: http://192.168.1.121:81
 - **HTTP Port**: 80 (redirects to HTTPS)
 - **HTTPS Port**: 443 (SSL termination)
 - **Status**: Running, Up 3 weeks
@@ -119,7 +119,7 @@ Action: Allow
 #### Access NPM Admin Interface
 ```bash
 # Open web browser
-URL: http://192.168.1.9:81
+URL: http://192.168.1.121:81
 
 # Login credentials (if default, change immediately)
 Username: admin@example.com
@@ -739,7 +739,7 @@ docker restart nginx-proxy-manager-nginx-proxy-manager-1
 ```
 
 #### Recreate Proxy Host Manually
-1. Access NPM admin at http://192.168.1.9:81
+1. Access NPM admin at http://192.168.1.121:81
 2. Navigate to Hosts → Proxy Hosts
 3. Click "Add Proxy Host"
 4. Follow configuration steps from this document

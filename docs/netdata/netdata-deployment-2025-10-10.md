@@ -483,7 +483,7 @@ docker exec npm sqlite3 /data/database.sqlite ".backup /data/database-backup-$(d
 ### Service URLs
 - **Public HTTPS**: https://netdata.acmea.tech
 - **Direct Access**: http://192.168.1.20:19999 (internal only)
-- **NPM Web UI**: http://192.168.1.9:81
+- **NPM Web UI**: http://192.168.1.121:81
 
 ### Key Files
 - **NPM Config**: `/data/nginx/proxy_host/32.conf`

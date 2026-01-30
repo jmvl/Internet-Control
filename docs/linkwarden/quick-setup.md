@@ -18,7 +18,7 @@
 
 ### Step 2: Nginx Proxy Manager Configuration
 
-1. Access NPM admin panel: `http://192.168.1.9:81`
+1. Access NPM admin panel: `http://192.168.1.121:81`
 2. Log in with admin credentials
 3. Click **Proxy Hosts** → **Add Proxy Host**
 
@@ -81,7 +81,7 @@ nslookup link.acmea.tech
 
 - **Local Access**: http://192.168.1.20:3002
 - **Public Access**: https://link.acmea.tech
-- **NPM Admin**: http://192.168.1.9:81
+- **NPM Admin**: http://192.168.1.121:81
 - **Installation Path**: /opt/linkwarden on CT 111
 
 ## Management

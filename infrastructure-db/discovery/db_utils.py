@@ -388,6 +388,96 @@ class InfrastructureDB:
             ORDER BY h.hostname, dc.container_name
         """)
 
+    def upsert_proxmox_container(self, container_data: Dict, changed_by: str = 'proxmox_discovery') -> Optional[int]:
+        """Insert or update Proxmox container (VM or LXC) with change tracking
+
+        Args:
+            container_data: Dictionary with container fields including:
+                - host_id: Link to hosts table
+                - proxmox_host_id: Link to Proxmox host
+                - vmid: Proxmox VM/Container ID
+                - container_type: 'vm' or 'lxc'
+                - Plus type-specific fields (vm_type, os_type, os_template, etc.)
+            changed_by: Identifier for who/what made the change
+
+        Returns:
+            int: The container record ID, or None if upsert failed
+        """
+        try:
+            # Check if container exists (by vmid and proxmox_host)
+            existing = self.execute_query(
+                "SELECT * FROM proxmox_containers WHERE proxmox_host_id = ? AND vmid = ?",
+                (container_data['proxmox_host_id'], container_data['vmid'])
+            )
+            existing = existing[0] if existing else None
+
+            if existing:
+                # Update existing container
+                update_fields = []
+                params = []
+                for key, value in container_data.items():
+                    if key not in ['proxmox_host_id', 'vmid'] and key in existing:
+                        update_fields.append(f"{key} = ?")
+                        params.append(value)
+
+                if update_fields:
+                    query = f"""UPDATE proxmox_containers SET {', '.join(update_fields)}
+                               WHERE proxmox_host_id = ? AND vmid = ?"""
+                    params.extend([container_data['proxmox_host_id'], container_data['vmid']])
+                    self.execute_update(query, tuple(params))
+
+                    # Log change
+                    self.log_change(
+                        change_type='update',
+                        entity_type='proxmox_container',
+                        entity_id=existing['id'],
+                        old_values=existing,
+                        new_values=container_data,
+                        changed_by=changed_by,
+                        description=f"Updated {container_data['container_type']} {container_data['vmid']}"
+                    )
+
+                return existing['id']
+            else:
+                # Insert new container
+                columns = list(container_data.keys())
+                placeholders = ','.join(['?' for _ in columns])
+                query = f"INSERT INTO proxmox_containers ({','.join(columns)}) VALUES ({placeholders})"
+
+                with self.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(query, tuple(container_data.values()))
+                    container_id = cursor.lastrowid
+
+                self.log_change(
+                    change_type='create',
+                    entity_type='proxmox_container',
+                    entity_id=container_id,
+                    old_values=None,
+                    new_values=container_data,
+                    changed_by=changed_by,
+                    description=f"Created {container_data['container_type']} {container_data['vmid']}"
+                )
+
+                return container_id
+
+        except Exception as e:
+            logger.error(f"Failed to upsert Proxmox container {container_data.get('vmid')}: {e}")
+            return None
+
+    def get_proxmox_containers_for_host(self, proxmox_host_id: int) -> List[Dict]:
+        """Get all Proxmox containers (VMs and LXCs) on a given Proxmox host"""
+        return self.execute_query("""
+            SELECT
+                pc.*,
+                h.hostname,
+                h.status as host_status
+            FROM proxmox_containers pc
+            JOIN hosts h ON pc.host_id = h.id
+            WHERE pc.proxmox_host_id = ?
+            ORDER BY pc.vmid
+        """, (proxmox_host_id,))
+
     def get_network_topology(self) -> List[Dict]:
         """Get complete network topology"""
         return self.execute_query("""

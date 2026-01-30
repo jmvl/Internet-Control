@@ -173,11 +173,12 @@ class ProxmoxDiscovery:
 
                 vm_host_id = self.db.upsert_host(vm_host_data, changed_by='proxmox_discovery')
 
-                # Create VM-specific record
+                # Create Proxmox container record (VM)
                 vm_record = {
                     'host_id': vm_host_id,
                     'proxmox_host_id': host_id,
                     'vmid': vm_data['vmid'],
+                    'container_type': 'vm',
                     'vm_type': vm_data.get('vm_type'),
                     'os_type': vm_data.get('os_type'),
                     'network_interfaces': vm_data.get('network_interfaces'),
@@ -185,8 +186,7 @@ class ProxmoxDiscovery:
                     'auto_start': vm_data.get('auto_start'),
                 }
 
-                # Upsert VM record (implement in db_utils if needed)
-                # self.db.upsert_virtual_machine(vm_record)
+                self.db.upsert_proxmox_container(vm_record, changed_by='proxmox_discovery')
 
             # Discover containers on this node
             containers = self.discover_containers(node_name)
@@ -206,11 +206,12 @@ class ProxmoxDiscovery:
 
                 ct_host_id = self.db.upsert_host(ct_host_data, changed_by='proxmox_discovery')
 
-                # Create LXC-specific record
+                # Create Proxmox container record (LXC)
                 lxc_record = {
                     'host_id': ct_host_id,
                     'proxmox_host_id': host_id,
                     'vmid': ct_data['vmid'],
+                    'container_type': 'lxc',
                     'os_template': ct_data.get('os_template'),
                     'unprivileged': ct_data.get('unprivileged'),
                     'rootfs_storage': ct_data.get('rootfs_storage'),
@@ -219,8 +220,7 @@ class ProxmoxDiscovery:
                     'auto_start': ct_data.get('auto_start'),
                 }
 
-                # Upsert LXC record (implement in db_utils if needed)
-                # self.db.upsert_lxc_container(lxc_record)
+                self.db.upsert_proxmox_container(lxc_record, changed_by='proxmox_discovery')
 
         logger.info("Completed Proxmox infrastructure discovery")
 

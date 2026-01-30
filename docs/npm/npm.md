@@ -1,17 +1,23 @@
 # Nginx Proxy Manager (NPM) Documentation
 
 ## Overview
-Nginx Proxy Manager provides a web-based interface for managing Nginx reverse proxy configurations. It simplifies SSL certificate management, proxy host configuration, and provides an intuitive GUI for complex Nginx configurations. It runs as a Docker container on the OMV node (192.168.1.9) and serves as the primary entry point for all external web traffic.
+Nginx Proxy Manager provides a web-based interface for managing Nginx reverse proxy configurations. It simplifies SSL certificate management, proxy host configuration, and provides an intuitive GUI for complex Nginx configurations.
+
+**IMPORTANT**: NPM was migrated from OMV (192.168.1.9) to pve2 PCT 121 (192.168.1.121) on January 20, 2026. See `/docs/npm/npm-migration-to-pve2-2026-01-20.md` for details.
 
 ## System Information
-- **Host**: OpenMediaVault NAS (192.168.1.9)
+- **Host**: pve2 PCT 121 (LXC - Debian 12)
+- **IP Address**: 192.168.1.121/24
+- **Proxmox Host**: 192.168.1.10 (pve2)
 - **Container**: `nginx-proxy-manager-nginx-proxy-manager-1`
 - **Image**: `jc21/nginx-proxy-manager:latest`
-- **Web Interface**: http://192.168.1.9:81 (Admin Panel) - https://nginx.home.accelior.com/
+- **Version**: v2.13.6 (updated January 20, 2026)
+- **Web Interface**: http://192.168.1.121:81 (Admin Panel) - https://nginx.home.accelior.com/
 - **HTTP Proxy**: Port 80 (HTTP traffic)
 - **HTTPS Proxy**: Port 443 (HTTPS traffic)
-- **Status**: Up 3 weeks
-- **Access**: SSH `root@192.168.1.9` or `root@omv`
+- **Status**: Running
+- **Access**: SSH `root@192.168.1.10` then `pct exec 121 -- bash`
+- **Docker Compose**: `/root/docker-compose.yml` (inside PCT 121)
 
 ## Container Configuration
 
@@ -244,7 +250,7 @@ docker exec nginx-proxy-manager-nginx-proxy-manager-1 certbot renew --dry-run
 ## Web Interface Access
 
 ### Admin Panel
-- **URL**: http://192.168.1.9:81
+- **URL**: http://192.168.1.121:81
 - **Default Login**: admin@example.com / changeme (first run)
 - **Features**: Full proxy management interface
 - **Mobile Support**: Responsive design for mobile management
@@ -409,6 +415,49 @@ docker exec nginx-proxy-manager-nginx-proxy-manager-1 curl -k https://192.168.1.
 
 ## Backup and Recovery
 
+### Automated Backup Script
+
+Create `/srv/raid/config/nginx-proxy-manager/backup-npm.sh`:
+
+```bash
+#!/bin/bash
+# NPM Complete Backup Script
+# Backs up both data and letsencrypt volumes
+
+BACKUP_DATE=$(date +%Y%m%d-%H%M%S)
+BACKUP_DIR="/root/npm-backups"
+mkdir -p $BACKUP_DIR
+
+echo "Starting NPM backup: ${BACKUP_DATE}"
+
+# Backup data volume
+docker run --rm \
+  -v nginx-proxy-manager_data:/data \
+  -v ${BACKUP_DIR}:/backup \
+  alpine tar czf /backup/npm-data-${BACKUP_DATE}.tar.gz /data
+
+# Backup letsencrypt volume (CRITICAL - contains SSL certificates)
+docker run --rm \
+  -v nginx-proxy-manager_letsencrypt:/letsencrypt \
+  -v ${BACKUP_DIR}:/backup \
+  alpine tar czf /backup/npm-letsencrypt-${BACKUP_DATE}.tar.gz /letsencrypt
+
+# Backup database separately
+docker exec nginx-proxy-manager-nginx-proxy-manager-1 \
+  cp /data/database.sqlite /tmp/
+docker cp nginx-proxy-manager-nginx-proxy-manager-1:/tmp/database.sqlite \
+  ${BACKUP_DIR}/database-${BACKUP_DATE}.sqlite
+
+# List backup files
+echo "Backup completed: ${BACKUP_DATE}"
+ls -lh ${BACKUP_DIR}/*${BACKUP_DATE}*
+
+# Clean up old backups (keep last 5)
+find ${BACKUP_DIR} -name "npm-data-*.tar.gz" -type f | sort -r | tail -n +6 | xargs rm -f
+find ${BACKUP_DIR} -name "npm-letsencrypt-*.tar.gz" -type f | sort -r | tail -n +6 | xargs rm -f
+find ${BACKUP_DIR} -name "database-*.sqlite" -type f | sort -r | tail -n +6 | xargs rm -f
+```
+
 ### Configuration Backup
 ```bash
 # Backup NPM data directory
@@ -466,19 +515,45 @@ docker exec nginx-proxy-manager-nginx-proxy-manager-1 \
   certbot certificates
 ```
 
-### Update Procedure
+### Update Procedure (Recommended - Docker Compose)
+
+**⚠️ CRITICAL**: Always use docker compose for updates to preserve volumes and prevent data loss.
+
 ```bash
+# Navigate to compose directory
+ssh root@192.168.1.9
+cd /srv/raid/config/nginx-proxy-manager
+
+# Create backup before update
+./backup-npm.sh  # See backup section below
+
 # Pull latest image
+docker compose pull
+
+# Restart with new image
+docker compose up -d
+
+# Verify update
+docker compose ps
+docker compose logs --tail 50
+```
+
+### Update Procedure (Manual - NOT RECOMMENDED)
+
+**⚠️ WARNING**: Manual updates can cause data loss if not done correctly. Use docker compose instead.
+
+```bash
+# ONLY use manual method if docker compose is unavailable
 docker pull jc21/nginx-proxy-manager:latest
-
-# Stop current container
 docker stop nginx-proxy-manager-nginx-proxy-manager-1
-
-# Remove old container (data persists in volumes)
 docker rm nginx-proxy-manager-nginx-proxy-manager-1
-
-# Start new container with updated image
-docker-compose up -d nginx-proxy-manager
+docker run -d \
+  --name nginx-proxy-manager-nginx-proxy-manager-1 \
+  --restart=unless-stopped \
+  -p 80:80 -p 81:81 -p 443:443 \
+  -v nginx-proxy-manager_data:/data \
+  -v nginx-proxy-manager_letsencrypt:/etc/letsencrypt \
+  jc21/nginx-proxy-manager:latest
 ```
 
 ### Maintenance Tasks
@@ -526,7 +601,7 @@ NPM relies on proper backend service configuration:
 docker ps | grep nginx-proxy-manager
 
 # Test admin panel
-curl -I http://192.168.1.9:81
+curl -I http://192.168.1.121:81
 
 # Check certificate status
 openssl s_client -connect domain.com:443 -servername domain.com
@@ -592,6 +667,11 @@ UDP Forwarding: No
 
 ---
 
-**Last Updated**: September 16, 2025
-**Next Review**: October 16, 2025
+**Last Updated**: January 20, 2026
+**Next Review**: February 20, 2026
 **Maintainer**: System Administrator
+**Recent Changes**:
+- Updated to v2.13.6 (January 20, 2026)
+- Added docker-compose file for proper upgrades
+- Documented proper backup procedures including letsencrypt volume
+- See: `/docs/troubleshooting/2026-01-20-npm-upgrade-ssl-loss-incident.md` for upgrade lessons learned

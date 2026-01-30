@@ -17,7 +17,7 @@ Radicale is a CalDAV/CardDAV server providing calendar and contact synchronizati
 ### Network Configuration
 ```
 External Traffic Flow (Production):
-Internet → Dynamic DNS → OPNsense (WAN:443) → NPM (192.168.1.9:443) → Radicale Container (192.168.1.30:5232)
+Internet → Dynamic DNS → OPNsense (WAN:443) → NPM (192.168.1.121:443) → Radicale Container (192.168.1.30:5232)
 Domain: radicale.home.accelior.com
 
 ⚠️ Note: Path-based routing via mail.accelior.com/radicale/ is NOT configured.
@@ -55,7 +55,7 @@ DNS Records (accelior.com zone):
 ### Certificate Details
 - **Issuer**: Let's Encrypt
 - **Subject**: radicale.home.accelior.com
-- **Managed By**: Nginx Proxy Manager (192.168.1.9)
+- **Managed By**: Nginx Proxy Manager (192.168.1.121 - pve2 PCT 121)
 - **Auto-renewal**: Enabled via NPM Let's Encrypt integration
 - **Certificate ID**: npm-49
 - **Key Type**: RSA (Let's Encrypt default)
@@ -137,7 +137,7 @@ The following configuration was considered but NOT implemented:
 # }
 ```
 
-### NPM Configuration (192.168.1.9)
+### NPM Configuration (192.168.1.121)
 
 **Primary Proxy Host (radicale.home.accelior.com):**
 - **ID**: 36
@@ -147,6 +147,7 @@ The following configuration was considered but NOT implemented:
 - **Forward Port**: 5232
 - **SSL Certificate**: Let's Encrypt (npm-49)
 - **Configuration**: `/data/nginx/proxy_host/36.conf`
+- **NPM Host**: pve2 PCT 121 (192.168.1.121)
 
 **Mail Domain Proxy (mail.accelior.com):**
 - **ID**: 18
@@ -432,6 +433,13 @@ ssh root@pve2 'pct exec 130 -- docker inspect radicale > /root/radicale-config.j
 
 ## Change Log
 
+### Version 2.2 - January 22, 2026
+- ✅ **NPM Migration Updated**: Documentation updated for NPM migration to pve2 PCT 121
+- **NPM Location Changed**: 192.168.1.9 (OMV) → 192.168.1.121 (pve2 PCT 121)
+- **Network Flow Updated**: OPNsense → NPM (192.168.1.121) → Radicale (192.168.1.30)
+- **Verified**: Radicale proxy and SSL certificate working correctly through new NPM
+- **Reference**: See `/docs/npm/npm-migration-to-pve2-2026-01-20.md` for migration details
+
 ### Version 2.1 - October 18, 2025
 - ✅ **Monitoring Added**: Integrated with Uptime Kuma (Monitor ID: 38)
 - ⚠️ **Documentation Correction**: Removed references to non-existent path-based routing
@@ -455,6 +463,6 @@ ssh root@pve2 'pct exec 130 -- docker inspect radicale > /root/radicale-config.j
 
 ---
 
-**Last Updated**: October 18, 2025
-**Document Version**: 2.1
+**Last Updated**: January 22, 2026
+**Document Version**: 2.2
 **Maintainer**: Infrastructure Team

@@ -120,7 +120,7 @@ Once DNS is propagating correctly:
 
 ### Option 1: Via NPM Web UI (Recommended)
 
-1. Access NPM admin panel: http://192.168.1.9:81
+1. Access NPM admin panel: http://192.168.1.121:81
 2. Go to **Proxy Hosts**
 3. Find **link.acmea.tech** (ID: 40)
 4. Click **Edit**
@@ -261,7 +261,7 @@ curl -I http://192.168.1.20:3002
 - [ ] Enable Cloudflare proxy (orange cloud)
 - [ ] Wait 2-5 minutes for DNS propagation
 - [ ] Verify DNS resolution: `nslookup link.acmea.tech`
-- [ ] Request SSL certificate via NPM web UI (http://192.168.1.9:81)
+- [ ] Request SSL certificate via NPM web UI (http://192.168.1.121:81)
 - [ ] Enable "Force SSL" in NPM
 - [ ] Test HTTPS access: `https://link.acmea.tech`
 - [ ] Create admin account in Linkwarden

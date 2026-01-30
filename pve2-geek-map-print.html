@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PVE2 Infrastructure Geek Map - Print Version</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a1a12;
+            --bg-card: #0f2418;
+            --bg-elevated: #142a1e;
+            --accent-green: #00cc66;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-tertiary: #888888;
+            --border-subtle: #1a3326;
+            --color-critical: #ff4d4d;
+            --color-high: #ffb347;
+            --color-medium: #ffd700;
+            --color-low: #4CAF94;
+        }
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.4;
+            font-size: 11px;
+        }
+
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid var(--accent-green);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .header .subtitle {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--accent-green);
+        }
+
+        .header .meta {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+
+        .header .meta-item {
+            font-size: 11px;
+        }
+
+        .header .meta-item .value {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: var(--bg-card);
+            border-radius: 8px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat .value {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--accent-green);
+        }
+
+        .stat .label {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+        }
+
+        .network-topology {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 10px;
+        }
+
+        .network-node {
+            padding: 8px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .network-node.primary {
+            border-color: var(--accent-green);
+        }
+
+        .network-node .name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .network-node .ip {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-tertiary);
+            font-size: 9px;
+        }
+
+        .infra-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            page-break-inside: avoid;
+        }
+
+        .infra-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            overflow: hidden;
+            page-break-inside: avoid;
+        }
+
+        .infra-card.active {
+            border-color: var(--accent-green);
+        }
+
+        .infra-card.stopped {
+            border-color: var(--color-critical);
+            opacity: 0.7;
+        }
+
+        .infra-card-header {
+            padding: 10px 12px;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .infra-card-header .status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .infra-card-header .status.active { background: var(--accent-green); }
+        .infra-card-header .status.stopped { background: var(--color-critical); }
+
+        .infra-card-header .type {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            padding: 2px 6px;
+            background: rgba(0, 204, 102, 0.1);
+            border-radius: 3px;
+        }
+
+        .infra-card-header .name {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: var(--text-primary);
+            flex: 1;
+            font-size: 11px;
+        }
+
+        .infra-card-body {
+            padding: 10px 12px;
+        }
+
+        .infra-card-body .ip {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 10px;
+            color: var(--text-tertiary);
+            margin-bottom: 6px;
+        }
+
+        .infra-card-body .resources {
+            font-size: 10px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .infra-card-body .description {
+            font-size: 10px;
+            color: var(--text-tertiary);
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .infra-card-body .criticality {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .infra-card-body .criticality.critical {
+            background: rgba(255, 77, 77, 0.2);
+            color: var(--color-critical);
+        }
+
+        .infra-card-body .criticality.high {
+            background: rgba(255, 179, 71, 0.2);
+            color: var(--color-high);
+        }
+
+        .infra-card-body .criticality.medium {
+            background: rgba(255, 215, 0, 0.2);
+            color: var(--color-medium);
+        }
+
+        .infra-card-body .criticality.low {
+            background: rgba(76, 175, 148, 0.2);
+            color: var(--color-low);
+        }
+
+        .container-list {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .container-list-title {
+            font-size: 9px;
+            color: var(--text-tertiary);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .container-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .container-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: var(--accent-green);
+            background: rgba(0, 204, 102, 0.1);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .service-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 8px;
+        }
+
+        .service-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            color: var(--text-secondary);
+            background: var(--bg-primary);
+            padding: 3px 8px;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .service-tag .service-name {
+            color: var(--accent-green);
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            padding: 10px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            font-size: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-item .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 15px 0;
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-tertiary);
+            font-size: 10px;
+            margin-top: 20px;
+        }
+
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page {
+                max-width: 100%;
+                padding: 10px;
+            }
+            .infra-card {
+                break-inside: avoid;
+            }
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- Header -->
+        <header class="header">
+            <h1>PVE2 Infrastructure Geek Map</h1>
+            <p class="subtitle">192.168.1.10 // Proxmox Virtualization Platform // 192.168.1.0/24</p>
+            <div class="meta">
+                <div class="meta-item"><span>Host:</span> <span class="value">pve2.accelior.com</span></div>
+                <div class="meta-item"><span>Type:</span> <span class="value">Physical Server</span></div>
+                <div class="meta-item"><span>Status:</span> <span class="value">Active</span></div>
+                <div class="meta-item"><span>Containers:</span> <span class="value">10 LXC</span></div>
+                <div class="meta-item"><span>VMs:</span> <span class="value">1 VM</span></div>
+                <div class="meta-item"><span>Docker:</span> <span class="value">50+ containers</span></div>
+            </div>
+        </header>
+
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat">
+                <div class="value">10</div>
+                <div class="label">LXC Containers</div>
+            </div>
+            <div class="stat">
+                <div class="value">1</div>
+                <div class="label">Virtual Machine</div>
+            </div>
+            <div class="stat">
+                <div class="value">50+</div>
+                <div class="label">Docker Containers</div>
+            </div>
+            <div class="stat">
+                <div class="value">80+</div>
+                <div class="label">Running Services</div>
+            </div>
+            <div class="stat">
+                <div class="value">23</div>
+                <div class="label">Docker Networks</div>
+            </div>
+        </div>
+
+        <!-- Network Topology -->
+        <div class="network-topology">
+            <div class="network-node">
+                <div class="name">OpenWrt</div>
+                <div class="ip">192.168.1.2</div>
+            </div>
+            <span>→</span>
+            <div class="network-node">
+                <div class="name">OPNsense</div>
+                <div class="ip">192.168.1.3</div>
+            </div>
+            <span>→</span>
+            <div class="network-node primary">
+                <div class="name">PVE2</div>
+                <div class="ip">192.168.1.10</div>
+            </div>
+            <span>→</span>
+            <div class="network-node">
+                <div class="name">LXC/VM</div>
+                <div class="ip">.1.20-.151</div>
+            </div>
+            <span>→</span>
+            <div class="network-node">
+                <div class="name">Docker</div>
+                <div class="ip">Containers</div>
+            </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item"><div class="dot" style="background: var(--accent-green);"></div><span>Active</span></div>
+            <div class="legend-item"><div class="dot" style="background: var(--color-critical);"></div><span>Stopped</span></div>
+            <div class="legend-item"><span class="criticality critical">Critical</span></div>
+            <div class="legend-item"><span class="criticality high">High</span></div>
+            <div class="legend-item"><span class="criticality medium">Medium</span></div>
+            <div class="legend-item"><span class="criticality low">Low</span></div>
+        </div>
+
+        <!-- Infrastructure Grid -->
+        <div class="infra-grid">
+            <!-- OPNsense VM -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">VM</span>
+                    <span class="name">opnsense</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.3</div>
+                    <div class="resources">VMID 133 • 6 cores • 3686MB RAM</div>
+                    <p class="description">Firewall, DHCP, traffic shaper</p>
+                    <span class="criticality critical">Critical</span>
+                    <div class="service-list">
+                        <span class="service-tag">OPNsense Web UI :443</span>
+                        <span class="service-tag">DHCP :67</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- docker-debian (Main Docker Host) -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">docker-debian</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.20</div>
+                    <div class="resources">VMID 111 • 12 cores • 10240MB RAM</div>
+                    <p class="description">Primary Docker Host - Supabase Stack, n8n, Portainer, Linkwarden, MinIO, Karakeep, Ollama, Agent0, Perplexica, Pi-hole</p>
+                    <span class="criticality critical">Critical</span>
+                    <div class="service-list">
+                        <span class="service-tag">Supabase Studio :3000</span>
+                        <span class="service-tag">Auth :9999</span>
+                        <span class="service-tag">Kong :8000</span>
+                        <span class="service-tag">PostgreSQL :5432</span>
+                        <span class="service-tag">n8n :5678</span>
+                        <span class="service-tag">Portainer :9443</span>
+                        <span class="service-tag">Linkwarden :3002</span>
+                        <span class="service-tag">MinIO :9002</span>
+                        <span class="service-tag">Ollama :11434</span>
+                    </div>
+                    <div class="container-list">
+                        <div class="container-list-title">Key Containers (30+):</div>
+                        <div class="container-tags">
+                            <span class="container-tag">postgres-db</span>
+                            <span class="container-tag">studio</span>
+                            <span class="container-tag">auth</span>
+                            <span class="container-tag">kong</span>
+                            <span class="container-tag">n8n</span>
+                            <span class="container-tag">realtime</span>
+                            <span class="container-tag">netdata</span>
+                            <span class="container-tag">semaphore</span>
+                            <span class="container-tag">linkwarden</span>
+                            <span class="container-tag">karakeep</span>
+                            <span class="container-tag">ollama</span>
+                            <span class="container-tag">agent-zero</span>
+                            <span class="container-tag">perplexica</span>
+                            <span class="container-tag">pihole</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- npm-pve2 -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">npm-pve2</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.121</div>
+                    <div class="resources">VMID 121 • 2 cores • 2048MB RAM</div>
+                    <p class="description">Nginx Proxy Manager - Migrated from OMV (2026-01-20). Reverse proxy with SSL for 41+ services.</p>
+                    <span class="criticality critical">Critical</span>
+                    <div class="service-list">
+                        <span class="service-tag">NPM :443</span>
+                        <span class="service-tag">NPM Admin :81</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- dev-ai -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">dev-ai</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.120</div>
+                    <div class="resources">VMID 120 • 14 cores • 32768MB RAM</div>
+                    <p class="description">AI development environment with AutoMaker. High-memory container for AI-assisted coding.</p>
+                    <span class="criticality high">High</span>
+                    <div class="service-list">
+                        <span class="service-tag">AutoMaker :3007</span>
+                        <span class="service-tag">Happy Server :3005</span>
+                    </div>
+                    <div class="container-list">
+                        <div class="container-list-title">Containers:</div>
+                        <div class="container-tags">
+                            <span class="container-tag">happy-server</span>
+                            <span class="container-tag">happy-postgres</span>
+                            <span class="container-tag">happy-redis</span>
+                            <span class="container-tag">happy-minio</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- files.accelior.com -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">files.accelior.com</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.25</div>
+                    <div class="resources">VMID 103 • 6 cores • 2048MB RAM</div>
+                    <p class="description">Seafile File Server - Cloud file storage and sync</p>
+                    <span class="criticality high">High</span>
+                    <div class="service-list">
+                        <span class="service-tag">Seafile :443</span>
+                    </div>
+                    <div class="container-list">
+                        <div class="container-list-title">Containers:</div>
+                        <div class="container-tags">
+                            <span class="container-tag">seafile</span>
+                            <span class="container-tag">seafile-mysql</span>
+                            <span class="container-tag">seafile-redis</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- mail.vega-messenger.com -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">mail.vega-messenger.com</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.30</div>
+                    <div class="resources">VMID 130 • 8 cores • 8192MB RAM</div>
+                    <p class="description">HestiaCP Mail Server with Roundcube webmail and dinero.cash website hosting</p>
+                    <span class="criticality high">High</span>
+                    <div class="service-list">
+                        <span class="service-tag">HestiaCP :8083</span>
+                        <span class="service-tag">Roundcube :8443</span>
+                        <span class="service-tag">Exim4 :25</span>
+                        <span class="service-tag">Dovecot :993</span>
+                        <span class="service-tag">dinero.cash :443</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ansible-mgmt -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">ansible-mgmt</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.26</div>
+                    <div class="resources">VMID 110 • 1 core • 1024MB RAM</div>
+                    <p class="description">Ansible Automation - Infrastructure automation and configuration management</p>
+                    <span class="criticality medium">Medium</span>
+                </div>
+            </div>
+
+            <!-- wanderwish -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">wanderwish</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.29</div>
+                    <div class="resources">VMID 109 • 12 cores • 4096MB RAM</div>
+                    <p class="description">Web Application</p>
+                    <span class="criticality medium">Medium</span>
+                </div>
+            </div>
+
+            <!-- moltbot -->
+            <div class="infra-card active">
+                <div class="infra-card-header">
+                    <div class="status active"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">moltbot</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.151</div>
+                    <div class="resources">VMID 101 • 2 cores • 4096MB RAM</div>
+                    <p class="description">Personal AI Assistant (formerly Clawdbot) - WhatsApp, Telegram, Slack, Discord, Signal support with Voice and Live Canvas</p>
+                    <span class="criticality medium">Medium</span>
+                    <div class="service-list">
+                        <span class="service-tag">Moltbot :18789</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confluence (Stopped) -->
+            <div class="infra-card stopped">
+                <div class="infra-card-header">
+                    <div class="status stopped"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">Confluence</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.21</div>
+                    <div class="resources">VMID 100 • 10 cores • 10137MB RAM</div>
+                    <p class="description">Confluence Wiki - STOPPED</p>
+                    <span class="criticality high">High</span>
+                </div>
+            </div>
+
+            <!-- JIRA (Stopped) -->
+            <div class="infra-card stopped">
+                <div class="infra-card-header">
+                    <div class="status stopped"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">jira.accelior.com</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.22</div>
+                    <div class="resources">VMID 102 • 6 cores • 6144MB RAM</div>
+                    <p class="description">JIRA Issue Tracking - STOPPED</p>
+                    <span class="criticality high">High</span>
+                </div>
+            </div>
+
+            <!-- GitLab (Stopped) -->
+            <div class="infra-card stopped">
+                <div class="infra-card-header">
+                    <div class="status stopped"></div>
+                    <span class="type">LXC</span>
+                    <span class="name">gitlab.accelior.com</span>
+                </div>
+                <div class="infra-card-body">
+                    <div class="ip">192.168.1.35</div>
+                    <div class="resources">VMID 501 • 8 cores • 6144MB RAM</div>
+                    <p class="description">GitLab CE Server - STOPPED</p>
+                    <span class="criticality medium">Medium</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Generated from infrastructure-db/infrastructure.db // Last updated: 2026-01-29</p>
+            <p>Total: 10 LXC containers, 1 VM, 50+ Docker containers, 80+ services</p>
+        </footer>
+    </div>
+</body>
+</html>

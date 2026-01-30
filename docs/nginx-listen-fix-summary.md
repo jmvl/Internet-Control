@@ -45,7 +45,7 @@ The 502 error is now coming from **NPM HTTPS configuration**, not Hestia.
 
 ### Check NPM SSL Settings:
 
-1. **Access NPM**: `http://192.168.1.9:81`
+1. **Access NPM**: `http://192.168.1.121:81`
 
 2. **Check mail.acmea.tech SSL configuration**:
    - SSL Certificate: Should be "Let's Encrypt" or "Request New"

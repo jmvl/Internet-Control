@@ -97,7 +97,7 @@ curl https://atlassian-mcp.acmea.tech/healthz
 
 ### Nginx Proxy Manager
 
-**Admin UI:** http://192.168.1.9:81
+**Admin UI:** http://192.168.1.121:81
 
 **Proxy Configuration:**
 - Domain: atlassian-mcp.acmea.tech
@@ -148,7 +148,7 @@ curl https://atlassian-mcp.acmea.tech/mcp
 
 ```bash
 # Access NPM admin UI
-open http://192.168.1.9:81
+open http://192.168.1.121:81
 
 # View NPM logs
 ssh root@192.168.1.9 "docker logs -f nginx-proxy-manager-nginx-proxy-manager-1"
@@ -282,7 +282,7 @@ Additional files:
 | **Server Location** | LXC 111 (docker-debian) |
 | **Server IP** | 192.168.1.20 |
 | **Server Port** | 9000 |
-| **NPM Admin** | http://192.168.1.9:81 |
+| **NPM Admin** | http://192.168.1.121:81 |
 | **DNS** | atlassian-mcp.acmea.tech |
 | **SSL Provider** | Let's Encrypt |
 | **SSL Email** | jmvl@accelior.com |

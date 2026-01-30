@@ -154,7 +154,7 @@ WAN:443 → 192.168.1.9:443 (HTTPS)
 
 To use NPM's Let's Encrypt instead of Cloudflare SSL:
 
-1. Access NPM: http://192.168.1.9:81 (internal) or https://nginx.acmea.tech (after setup)
+1. Access NPM: http://192.168.1.121:81 (internal) or https://nginx.acmea.tech (after setup)
 2. Navigate to: SSL Certificates → Add SSL Certificate
 3. Configure for each domain:
    - Domain: perplexica.acmea.tech

@@ -70,7 +70,7 @@ If you prefer manual configuration:
    ./scripts/setup-npm-atlassian-proxy.sh
    ```
 
-2. Follow the displayed instructions to configure via NPM web UI at http://192.168.1.9:81
+2. Follow the displayed instructions to configure via NPM web UI at http://192.168.1.121:81
 
 ---
 
@@ -209,7 +209,7 @@ See documentation for implementation details: `/Users/jm/Codebase/internet-contr
 | Public Domain | atlassian-mcp.acmea.tech |
 | Public Endpoint | https://atlassian-mcp.acmea.tech/mcp |
 | Internal Endpoint | http://192.168.1.20:9000/mcp |
-| NPM Admin UI | http://192.168.1.9:81 |
+| NPM Admin UI | http://192.168.1.121:81 |
 | Backend Server | LXC 111 (192.168.1.20) |
 | Backend Port | 9000 |
 | SSL Provider | Let's Encrypt |

@@ -6,7 +6,7 @@ The Nginx Proxy Manager is currently configured to forward `mail.acmea.tech` to 
 ## Solution Steps
 
 ### Step 1: Access Nginx Proxy Manager
-1. Open browser and go to: `http://192.168.1.9:81`
+1. Open browser and go to: `http://192.168.1.121:81`
 2. Login with your credentials
 
 ### Step 2: Modify mail.acmea.tech Proxy Host

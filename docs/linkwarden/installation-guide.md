@@ -124,7 +124,7 @@ Create a CNAME record in Cloudflare:
 - **TTL**: Auto
 
 #### Step 2: Nginx Proxy Manager (NPM)
-Configure reverse proxy on NPM (http://192.168.1.9:81):
+Configure reverse proxy on NPM (http://192.168.1.121:81):
 
 **Proxy Host Configuration**:
 - **Domain Names**: link.acmea.tech

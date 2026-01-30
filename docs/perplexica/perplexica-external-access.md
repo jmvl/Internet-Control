@@ -90,7 +90,7 @@ INSERT INTO proxy_host (
 **NPM Container Details**:
 - **Container Name**: nginx-proxy-manager-nginx-proxy-manager-1
 - **Host**: 192.168.1.9 (OMV Server)
-- **Web UI**: http://192.168.1.9:81
+- **Web UI**: http://192.168.1.121:81
 - **Ports Exposed**: 80, 81, 443
 
 ### 3. Perplexica Backend Configuration
@@ -144,7 +144,7 @@ app:
 
 To add an origin certificate for Full (Strict) SSL mode:
 
-1. **Access NPM Web UI**: http://192.168.1.9:81
+1. **Access NPM Web UI**: http://192.168.1.121:81
 2. **Navigate to**: SSL Certificates → Add SSL Certificate
 3. **Configure**:
    - **Domain Names**: perplexica.acmea.tech

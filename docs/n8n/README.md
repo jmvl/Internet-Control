@@ -2,45 +2,74 @@
 
 ## Overview
 
-This directory contains comprehensive documentation for the n8n workflow automation platform deployed on LXC Container 111 (docker-debian) on pve2. The service uses a self-hosted PostgreSQL database (migrated from Supabase on 2025-11-26) and has been optimized for memory efficiency and production stability.
+This directory contains comprehensive documentation for the n8n workflow automation platform deployed across two environments:
+
+| Environment | URL | Host | n8n Version |
+|-------------|-----|------|-------------|
+| **Staging** | https://n8n.accelior.com | 192.168.1.20 (docker-host-pct111) | **2.4.6** |
+| **Production** | https://n8n.acmea.tech | 135.181.154.169 (Hetzner VPS) | **2.4.6** |
+
+Both instances use self-hosted PostgreSQL 16 databases and have been optimized for memory efficiency and production stability.
 
 ## Service Status
 
-- **Status**: ✅ **Production Active**
-- **Location**: LXC Container 111 (docker-debian) on pve2
-- **Public URL**: https://n8n.accelior.com
-- **Database**: Local PostgreSQL (n8n-postgres container)
-- **n8n Version**: 1.113.1
+- **Staging Status**: ✅ **Active** (Upgraded January 28, 2026)
+- **Production Status**: ✅ **Active** (Upgraded January 28, 2026)
 - **PostgreSQL Version**: 16-alpine
-- **Last Migration**: November 26, 2025 (Supabase → Local PostgreSQL)
+- **Last Migration**: January 28, 2026 (n8n 1.x/2.1.4 → 2.4.6)
 
 ## Quick Reference
 
-### Service Management
+### Staging Environment (n8n.accelior.com)
 ```bash
 # Check service status
-ssh root@pve2 'pct exec 111 -- docker compose -f /home/n8n_compose/docker-compose.yml ps'
+ssh root@192.168.1.20 'cd /home/n8n_compose && docker compose ps'
 
 # View resource usage
-ssh root@pve2 'pct exec 111 -- docker stats n8n-n8n-1 n8n-postgres --no-stream'
+ssh root@192.168.1.20 'docker stats n8n-n8n-1 n8n-postgres --no-stream'
 
 # Restart services
-ssh root@pve2 'pct exec 111 -- docker compose -f /home/n8n_compose/docker-compose.yml restart'
+ssh root@192.168.1.20 'cd /home/n8n_compose && docker compose restart'
 
 # View logs
-ssh root@pve2 'pct exec 111 -- docker logs n8n-n8n-1 -f'
+ssh root@192.168.1.20 'docker logs n8n-n8n-1 -f'
 ```
 
-### Health Check
+### Production Environment (n8n.acmea.tech)
 ```bash
-# Service accessibility
+# Check service status
+ssh root@135.181.154.169 'docker ps --filter "name=n8n"'
+
+# View resource usage
+ssh root@135.181.154.169 'docker stats n8n-n8n-1 n8n-postgres --no-stream'
+
+# View logs
+ssh root@135.181.154.169 'docker logs n8n-n8n-1 -f'
+```
+
+### Health Checks
+```bash
+# Staging accessibility
 curl -s https://n8n.accelior.com/healthz
 
-# Database connectivity (local postgres)
-ssh root@pve2 'pct exec 111 -- docker exec n8n-postgres pg_isready -U n8n -d n8n'
+# Production accessibility
+curl -s https://n8n.acmea.tech/healthz
+
+# Database connectivity (staging)
+ssh root@192.168.1.20 'docker exec n8n-postgres pg_isready -U n8n -d n8n'
+
+# Database connectivity (production)
+ssh root@135.181.154.169 'docker exec n8n-postgres pg_isready -U n8n -d n8n'
 ```
 
 ## Documentation Structure
+
+### 📖 [n8n 2.4.6 Upgrade (January 28, 2026)](./n8n-2.4.6-upgrade-2026-01-28.md)
+**Purpose**: Complete upgrade documentation from 1.x/2.1.x to 2.4.6
+**Use Cases**:
+- Understanding upgrade procedures and breaking changes
+- Rollback procedures if needed
+- Migration reference for future upgrades
 
 ### 📖 [Container Optimization Guide](./container-optimization-guide.md)
 **Purpose**: Comprehensive memory optimization implementation
@@ -212,7 +241,7 @@ ssh root@pve2 'pct exec 111 -- docker logs n8n-n8n-1 --tail 20'
 ---
 
 **Documentation Status**: ✅ Complete
-**Last Review**: November 26, 2025
-**Next Review**: December 26, 2025
+**Last Review**: January 28, 2026
+**Next Review**: As needed for future n8n versions
 **Maintainer**: Infrastructure Team
-**Version**: 2.0.0
+**Version**: 2.1.0

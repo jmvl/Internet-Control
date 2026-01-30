@@ -1,6 +1,6 @@
 # Netdata Monitoring Dashboard - Complete Documentation
 
-**Last Updated**: 2025-10-10
+**Last Updated**: 2026-01-20 (Security hardening per Netdata official docs)
 **Service**: Netdata Monitoring Dashboard
 **Status**: ✅ **LIVE, SECURED, AND OPERATIONAL**
 
@@ -119,13 +119,15 @@ Netdata Dashboard (Displayed)
 
 ## 🔒 SECURITY CONFIGURATION
 
-### Security Layers (Multi-Layer Defense)
+### Security Architecture (Single Control Point)
 
-1. **✅ Authentication** - HTTP Basic Auth (username/password required)
+**Design**: Centralized security at Nginx reverse proxy level
+
+1. **✅ Authentication** - HTTP Basic Auth at Nginx (username/password required)
 2. **✅ Encryption** - TLS 1.2/1.3 with strong ciphers
-3. **✅ Network Isolation** - Internal network only, no direct internet access
-4. **✅ Access Control** - IP-based restrictions at Netdata level
-5. **✅ Firewall** - OPNsense blocks all direct access
+3. **✅ Network Isolation** - Internal network only (OPNsense firewall)
+4. **✅ Access Control** - Single point: Nginx reverse proxy
+5. **✅ Simplicity** - Netdata has minimal ACLs, Nginx handles all security
 
 ### Authentication Configuration
 
@@ -145,22 +147,40 @@ location / {
 }
 ```
 
-### Netdata Access Restrictions
+### Netdata Access Configuration (Minimal - Centralized Security)
 
 **Location**: Netdata container (192.168.1.20)
 **Config File**: `/etc/netdata/netdata.conf`
+**Updated**: 2026-01-20
+
+**Security Model**: **Single Control Point** - All security handled by Nginx reverse proxy
 
 ```ini
 [web]
     bind to = *
     default port = 19999
+
+    # Network access - allow local network only
+    # (All other security handled by Nginx reverse proxy)
     allow connections from = localhost 192.168.1.*
 ```
 
-**Access Control**:
-- ✅ Localhost (127.0.0.1) - for health checks
-- ✅ Local network (192.168.1.*) - for NPM proxy
-- ❌ All other networks - denied
+**Why This Approach?**
+1. **Simplicity**: One place to manage security (Nginx)
+2. **Flexibility**: Nginx has powerful features (geoip, rate limiting, WAF, etc.)
+3. **Auditability**: Single point to check security posture
+4. **Network Safety**: OPNsense firewall already blocks external access to port 19999
+
+**Security Layers**:
+| Layer | Protection |
+|-------|------------|
+| **OPNsense Firewall** | Blocks external access to port 19999 |
+| **Nginx Reverse Proxy** | HTTP Basic Auth, SSL/TLS, request filtering |
+| **Netdata** | Network ACL (192.168.1.* only) - last resort |
+
+**Management API**: Accessible from local network only, protected by Nginx authentication
+- API Token: `e260db76-82e5-4a13-9f4f-59d0778c518b` (stored in `/var/lib/netdata/netdata.api.key`)
+- Use from localhost or through Nginx proxy with authentication
 
 ### SSL/TLS Configuration
 
@@ -174,6 +194,42 @@ location / {
 ---
 
 ## 🔧 MANAGEMENT & ADMINISTRATION
+
+### Using the Management API
+
+**API Token**: `e260db76-82e5-4a13-9f4f-59d0778c518b`
+
+**From localhost** (SSH into PCT 111):
+```bash
+# Get your token
+TOKEN=$(cat /var/lib/netdata/netdata.api.key)
+
+# Check current health status
+curl "http://localhost:19999/api/v1/manage/health" -H "X-Auth-Token: ${TOKEN}"
+
+# Disable all health checks (maintenance mode)
+curl "http://localhost:19999/api/v1/manage/health?cmd=DISABLE ALL" -H "X-Auth-Token: ${TOKEN}"
+
+# Enable all health checks
+curl "http://localhost:19999/api/v1/manage/health?cmd=ENABLE ALL" -H "X-Auth-Token: ${TOKEN}"
+
+# Disable specific alerts by context
+curl "http://localhost:19999/api/v1/manage/health?cmd=DISABLE&context=cpu" -H "X-Auth-Token: ${TOKEN}"
+```
+
+**From PCT 111 host**:
+```bash
+ssh root@192.168.1.10
+pct exec 111 -- docker exec netdata bash -c 'curl -s "http://localhost:19999/api/v1/manage/health" -H "X-Auth-Token: $(cat /var/lib/netdata/netdata.api.key)"'
+```
+
+**Via Nginx proxy** (requires HTTP Basic Auth + API Token):
+```bash
+# First authenticate with Nginx, then use API token
+curl -u "admin:RgVW6rzrNLXXP6pjC6DVUg==" \
+  "https://netdata.acmea.tech/api/v1/manage/health" \
+  -H "X-Auth-Token: e260db76-82e5-4a13-9f4f-59d0778c518b"
+```
 
 ### Change Password
 
@@ -669,6 +725,30 @@ ssh root@192.168.1.10 "pct exec 111 -- cat /opt/netdata/docker-compose.yml"
 
 **Security Level Achieved**: ⭐⭐⭐⭐⭐ Enterprise-Grade
 
+### Security Architecture Simplification (2026-01-20)
+
+**Change**: Simplified security to use centralized Nginx reverse proxy controls
+
+**Before**: Defense in Depth (granular ACLs in Netdata + Nginx auth)
+- Complex configuration with multiple access control points
+- Management API, dashboard, streaming, badges each had separate ACLs
+
+**After**: Single Control Point (Nginx handles all security)
+- ✅ **Simpler Netdata config**: Only basic network ACL (192.168.1.*)
+- ✅ **All security at Nginx**: Authentication, rate limiting, WAF capabilities
+- ✅ **Easier to audit**: Single point to check security posture
+- ✅ **More flexible**: Can leverage Nginx features (geoip, advanced filtering)
+
+**Security Rationale**:
+- OPNsense firewall already blocks external access to port 19999
+- Internal network (192.168.1.*) is trusted
+- Nginx reverse proxy is the single entry point from internet
+- Centralized security reduces complexity while maintaining safety
+
+**API Token**: `e260db76-82e5-4a13-9f4f-59d0778c518b` (stored in `/var/lib/netdata/netdata.api.key`)
+
+**Security Level**: ⭐⭐⭐⭐⭐ Enterprise-Grade (Simplified)
+
 ---
 
 ## 🔗 RELATED DOCUMENTATION
@@ -781,10 +861,16 @@ ssh root@opnsense
 **URL**: https://netdata.acmea.tech
 **Authentication**: ✅ **ENABLED** (admin / RgVW6rzrNLXXP6pjC6DVUg==)
 **SSL Certificate**: ✅ **VALID** (expires 2026-01-08)
-**Dynamic DNS**: ✅ **ACTIVE** (home.accelior.com → 94.105.107.145)
-**Security Level**: ⭐⭐⭐⭐⭐ **ENTERPRISE-GRADE**
+**Dynamic DNS**: ✅ **ACTIVE** (home.accelior.com → 77.109.112.226)
+**Security Level**: ⭐⭐⭐⭐⭐ **ENTERPRISE-GRADE (SIMPLIFIED)**
 
-**Last Verified**: 2025-10-10 12:50 CEST
+**Security Architecture**: Single Control Point (Nginx)
+- ✅ HTTP Basic Auth (Nginx Proxy Manager)
+- ✅ TLS 1.2/1.3 Encryption
+- ✅ Network Access Controls (192.168.1.* only)
+- ✅ OPNsense Firewall (blocks external port 19999)
+
+**Last Verified**: 2026-01-20 15:25 CET
 **Next Certificate Renewal**: ~2025-12-09 (automatic)
 **Next Security Review**: 2025-11-10
 

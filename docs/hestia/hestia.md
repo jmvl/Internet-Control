@@ -231,7 +231,7 @@ iptables -L INPUT -n | grep 844
 #### 2. **NPM Proxy Configuration Mismatch**
 **Symptoms**: "upstream prematurely closed connection", 400 Bad Request
 **Cause**: HTTP scheme configured with HTTPS port
-**Solution**: In NPM admin (http://192.168.1.9:81), set:
+**Solution**: In NPM admin (http://192.168.1.121:81), set:
 - Scheme: `https` (not http)
 - Forward Hostname/IP: `192.168.1.30`
 - Forward Port: `8443`
@@ -750,3 +750,39 @@ done'
 - Review DKIM key strength (consider upgrading acmea.tech to 2048-bit)
 - Evaluate relay service costs vs alternatives
 - Update DNS records and SSL certificates as needed
+
+---
+
+## Web Hosting
+
+In addition to email services, HestiaCP also hosts static websites with the following architecture:
+
+```
+Internet → Cloudflare CDN → OPNsense → NPM (192.168.1.9) → Hestia (192.168.1.30)
+          (77.109.112.226)  (192.168.1.3)  (Proxy)           (Nginx → Apache)
+```
+
+### dinero.cash
+
+**Status**: Active (2026-01-16)
+**User**: dinero
+**Domain**: dinero.cash, www.dinero.cash
+**Type**: Static HTML website
+**Documentation**: [dinero-cash-hosting.md](./dinero-cash-hosting.md)
+
+**Quick Links**:
+- Website: https://dinero.cash
+- Cloudflare Zone: dinero.cash (proxy enabled)
+- NPM Proxy Host: #47 (forwarding to 192.168.1.30:443)
+- Web Files: `/home/dinero/web/dinero.cash/public_html/`
+
+**Service Dependencies**:
+- Nginx Proxy Manager (service #22)
+- Cloudflare DNS (service #76)
+- HestiaCP Control Panel (service #52)
+
+For full documentation including troubleshooting, DNS configuration, and maintenance procedures, see [dinero-cash-hosting.md](./dinero-cash-hosting.md).
+
+---
+
+*Last updated: 2026-01-16*

@@ -42,7 +42,7 @@ The script provides three options:
 
 #### Access NPM
 
-1. Open: http://192.168.1.9:81
+1. Open: http://192.168.1.121:81
 2. Login with admin credentials
 
 #### Create Proxy Host

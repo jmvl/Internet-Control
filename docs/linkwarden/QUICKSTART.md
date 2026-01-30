@@ -25,7 +25,7 @@
 
 ### Step 2: Enable SSL in NPM (3 minutes)
 
-1. Open http://192.168.1.9:81
+1. Open http://192.168.1.121:81
 2. Go to **Proxy Hosts**
 3. Find `link.acmea.tech` (should be at the top)
 4. Click **⋮** → **Edit**
@@ -47,7 +47,7 @@ Visit https://link.acmea.tech and create your admin account.
 
 - **Public**: https://link.acmea.tech (after DNS/SSL)
 - **Internal**: http://192.168.1.20:3002
-- **NPM Admin**: http://192.168.1.9:81
+- **NPM Admin**: http://192.168.1.121:81
 
 ## 🛠️ Management Commands
 

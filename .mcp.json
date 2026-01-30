@@ -9,8 +9,9 @@
         "mcp-hetzner"
       ],
       "env": {
-        "HCLOUD_TOKEN": "DmsXjFP5Yl05WfX9AiJGxDszr9tGHKMivBAYWfpOslMzPyS8blYVgHIA8DtgOIRO"
-      }
+        "HCLOUD_TOKEN": "${HCLOUD_TOKEN}"
+      },
+      "disabled": true
     },
     "context7": {
       "type": "stdio",
@@ -18,18 +19,21 @@
       "args": [
         "-y",
         "@upstash/context7-mcp@latest"
-      ]
+      ],
+      "disabled": true
     },
-    "perplexity": {
+    "brave-search": {
       "type": "stdio",
       "command": "npx",
       "args": [
         "-y",
-        "@perplexity-ai/mcp-server"
+        "@brave/brave-search-mcp-server",
+        "--brave-api-key",
+        "${BRAVE_API_KEY}"
       ],
-      "env": {
-        "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
-      }
+      "alwaysAllow": [
+        "brave_web_search"
+      ]
     }
   }
 }

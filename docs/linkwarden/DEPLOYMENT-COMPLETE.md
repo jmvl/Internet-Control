@@ -102,7 +102,7 @@ curl -I https://link.acmea.tech
 - **HTTP** (working now): http://link.acmea.tech
 - **HTTPS** (after SSL): https://link.acmea.tech
 - **Internal**: http://192.168.1.20:3002
-- **NPM Admin**: http://192.168.1.9:81
+- **NPM Admin**: http://192.168.1.121:81
 
 ## 📋 Post-SSL Configuration Checklist
 

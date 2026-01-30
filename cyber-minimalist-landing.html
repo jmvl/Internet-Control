@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge - Cybernetics Reimagined</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Montserrat:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* === CSS Variables === */
+        :root {
+            --bg-primary: #0a1a12;
+            --bg-card: #0f2418;
+            --bg-elevated: #142a1e;
+            --accent-green: #00cc66;
+            --accent-green-dark: #00a352;
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-tertiary: #888888;
+            --border-subtle: #1a3326;
+            --color-success: #00cc66;
+            --color-warning: #ffb347;
+            --color-error: #ff4d4d;
+
+            /* Spacing */
+            --space-xs: 8px;
+            --space-sm: 16px;
+            --space-md: 24px;
+            --space-lg: 32px;
+            --space-xl: 48px;
+            --space-2xl: 64px;
+            --space-3xl: 96px;
+
+            /* Transitions */
+            --transition-standard: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-emphasis: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* === Reset & Base === */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            line-height: 1.5;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Background gradient overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 30% 40%, rgba(0, 204, 102, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* === Typography === */
+        h1, h2, h3, h4 {
+            font-family: 'Montserrat', sans-serif;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .hero-h1 {
+            font-size: 72px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+
+        .section-h1 {
+            font-size: 48px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        h2 {
+            font-size: 32px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        h3 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+        }
+
+        .body-large {
+            font-size: 18px;
+            line-height: 28px;
+        }
+
+        .body {
+            font-size: 16px;
+            line-height: 24px;
+        }
+
+        .body-small {
+            font-size: 14px;
+            line-height: 20px;
+        }
+
+        .caption {
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+            color: var(--text-tertiary);
+        }
+
+        /* === Buttons === */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-xs);
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all var(--transition-standard);
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-green);
+            color: var(--text-primary);
+            height: 52px;
+            padding: 14px 24px;
+            border-radius: 4px;
+            box-shadow: 0 4px 20px rgba(0, 204, 102, 0.3);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-green-dark);
+            box-shadow: 0 6px 24px rgba(0, 204, 102, 0.4);
+            transform: scale(1.02);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--accent-green);
+            border: 1px solid var(--accent-green);
+            height: 48px;
+            padding: 12px 20px;
+            border-radius: 4px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(0, 204, 102, 0.1);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+        }
+
+        .btn-ghost:hover {
+            color: var(--text-primary);
+        }
+
+        .btn-small {
+            height: 40px;
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        /* === Icons === */
+        .icon {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .icon-sm {
+            width: 16px;
+            height: 16px;
+        }
+
+        .icon-lg {
+            width: 48px;
+            height: 48px;
+        }
+
+        /* === Header === */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-2xl);
+            z-index: 1000;
+            background: rgba(10, 26, 18, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            color: var(--accent-green);
+        }
+
+        .nav {
+            display: flex;
+            gap: var(--space-xl);
+            list-style: none;
+        }
+
+        .nav a {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            text-decoration: none;
+            position: relative;
+            padding: 4px 0;
+        }
+
+        .nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 2px;
+            background: var(--accent-green);
+            transition: all var(--transition-standard);
+            transform: translateX(-50%);
+        }
+
+        .nav a:hover {
+            color: var(--text-primary);
+        }
+
+        .nav a:hover::after {
+            width: 100%;
+        }
+
+        /* === Main Content === */
+        .main {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* === Hero Section === */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: var(--space-3xl) var(--space-2xl);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .hero-icon-wrapper {
+            margin-bottom: var(--space-md);
+            animation: fadeInUp 600ms ease-out forwards;
+        }
+
+        .hero-icon-wrapper .icon {
+            color: var(--accent-green);
+        }
+
+        .hero-tagline {
+            margin-bottom: var(--space-lg);
+            animation: fadeInUp 700ms ease-out 100ms forwards;
+            opacity: 0;
+        }
+
+        .hero-headline {
+            margin-bottom: var(--space-md);
+            animation: fadeInUp 700ms ease-out 200ms forwards;
+            opacity: 0;
+        }
+
+        .hero-subtext {
+            margin-bottom: var(--space-xl);
+            animation: fadeInUp 700ms ease-out 300ms forwards;
+            opacity: 0;
+        }
+
+        .hero-cta {
+            animation: fadeInUp 700ms ease-out 400ms forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* === Feature Cards === */
+        .features-section {
+            padding: var(--space-3xl) var(--space-2xl);
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-md);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: var(--space-lg);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-green), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-standard);
+        }
+
+        .card:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent-green);
+            transform: translateY(-4px);
+            box-shadow: 0 0 30px rgba(0, 204, 102, 0.15), 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            margin-bottom: var(--space-md);
+            color: var(--accent-green);
+        }
+
+        .card-title {
+            margin-bottom: var(--space-sm);
+        }
+
+        .card-description {
+            color: var(--text-secondary);
+        }
+
+        .card-metric {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--space-sm);
+        }
+
+        /* === Stats Cards === */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-md);
+        }
+
+        /* === Profile Cards === */
+        .profile-card {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .profile-avatars {
+            display: flex;
+            gap: var(--space-sm);
+        }
+
+        .avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            border: 2px solid var(--accent-green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* === Section Divider === */
+        .section-divider {
+            height: 1px;
+            background: var(--border-subtle);
+            margin: var(--space-3xl) auto;
+            max-width: 1280px;
+        }
+
+        /* === Footer === */
+        .footer {
+            padding: var(--space-2xl) var(--space-2xl);
+            text-align: center;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .footer-text {
+            color: var(--text-tertiary);
+            font-size: 14px;
+        }
+
+        /* === Responsive === */
+        @media (max-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0 var(--space-lg);
+            }
+
+            .nav {
+                display: none;
+            }
+
+            .hero-h1 {
+                font-size: 42px;
+            }
+
+            .features-grid,
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero {
+                padding: var(--space-xl) var(--space-lg);
+            }
+
+            .features-section {
+                padding: var(--space-xl) var(--space-lg);
+            }
+        }
+
+        /* === Accessibility === */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .btn:focus-visible,
+        .nav a:focus-visible {
+            outline: 2px solid var(--accent-green);
+            outline-offset: 2px;
+        }
+
+        /* === Utility Classes === */
+        .text-accent {
+            color: var(--accent-green);
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mb-sm { margin-bottom: var(--space-sm); }
+        .mb-md { margin-bottom: var(--space-md); }
+        .mb-lg { margin-bottom: var(--space-lg); }
+        .mb-xl { margin-bottom: var(--space-xl); }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <a href="#" class="logo">
+            <svg class="icon icon-sm logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+            FORGE
+        </a>
+        <nav>
+            <ul class="nav">
+                <li><a href="#about">About Us</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </nav>
+        <a href="tel:+1234567888" class="btn btn-primary btn-small">
+            <svg class="icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            +1 234 567 88
+        </a>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-icon-wrapper">
+                <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                </svg>
+            </div>
+            <p class="hero-tagline body-small">
+                Empowering you to enhance, extend, and evolve with technology like never before
+            </p>
+            <h1 class="hero-headline hero-h1">Cybernetics Reimagined</h1>
+            <p class="hero-subtext body">Across devices, platforms, and tools</p>
+            <div class="hero-cta">
+                <a href="#" class="btn btn-primary">Get Started</a>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="features-section" id="features">
+            <div class="features-grid">
+                <!-- Feature Card 1 -->
+                <div class="card">
+                    <div class="card-icon">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Universal Integration</h3>
+                    <p class="card-description body">Seamlessly connect across all your devices and platforms with unified control.</p>
+                </div>
+
+                <!-- Feature Card 2 -->
+                <div class="card">
+                    <div class="card-icon">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Lightning Performance</h3>
+                    <p class="card-description body">Experience blazing fast response times with our optimized architecture.</p>
+                </div>
+
+                <!-- Feature Card 3 -->
+                <div class="card">
+                    <div class="card-icon">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Enterprise Security</h3>
+                    <p class="card-description body">Bank-grade encryption and security protocols protect your data.</p>
+                </div>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <!-- Stats Section -->
+        <section class="features-section">
+            <div class="stats-grid">
+                <!-- Stat Card 1 -->
+                <div class="card">
+                    <div class="card-metric">500,000+</div>
+                    <h3 class="card-title">Integrations</h3>
+                    <p class="card-description body-small">Across devices, platforms, and tools</p>
+                </div>
+
+                <!-- Stat Card 2 -->
+                <div class="card">
+                    <div class="card-metric">20x</div>
+                    <h3 class="card-title">Power Efficiency</h3>
+                    <p class="card-description body-small">Operates on minimal hardware, not hard drives</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section class="features-section">
+            <div class="features-grid">
+                <div class="card profile-card">
+                    <div class="profile-avatars">
+                        <div class="avatar">JD</div>
+                        <div class="avatar">AK</div>
+                        <div class="avatar">MR</div>
+                    </div>
+                    <p class="card-description body">Empowering you to enhance, extend, and evolve with technology like never before</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Real-time Analytics</h3>
+                    <p class="card-description body-small">Monitor performance metrics and system health in real-time</p>
+                </div>
+
+                <div class="card">
+                    <div class="card-icon">
+                        <svg class="icon icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="card-title">Customizable</h3>
+                    <p class="card-description body-small">Tailor every aspect to your specific needs and preferences</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p class="footer-text">&copy; 2025 Forge. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Smooth scroll for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                const href = this.getAttribute('href');
+                if (href !== '#') {
+                    e.preventDefault();
+                    const target = document.querySelector(href);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            });
+        });
+
+        // Add scroll-based header background opacity
+        const header = document.querySelector('.header');
+        window.addEventListener('scroll', () => {
+            const scrollY = window.scrollY;
+            if (scrollY > 50) {
+                header.style.background = 'rgba(10, 26, 18, 0.95)';
+            } else {
+                header.style.background = 'rgba(10, 26, 18, 0.8)';
+            }
+        });
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all cards for animation
+        document.querySelectorAll('.card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'opacity 0.6s ease-out, transform 0.6s ease-out, box-shadow 0.3s ease-out, border-color 0.3s ease-out';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>

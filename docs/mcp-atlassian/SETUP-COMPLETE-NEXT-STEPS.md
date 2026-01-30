@@ -74,7 +74,7 @@ If you prefer manual configuration:
 2. **Or follow these steps directly:**
 
    **Access NPM:**
-   - Open: http://192.168.1.9:81
+   - Open: http://192.168.1.121:81
    - Login with your admin credentials
 
    **Create Proxy Host:**
@@ -399,7 +399,7 @@ See: https://www.cloudflare.com/products/zero-trust/access/
 | **Public Domain** | atlassian-mcp.acmea.tech |
 | **Public Endpoint** | https://atlassian-mcp.acmea.tech/mcp |
 | **Internal Endpoint** | http://192.168.1.20:9000/mcp |
-| **NPM Admin UI** | http://192.168.1.9:81 |
+| **NPM Admin UI** | http://192.168.1.121:81 |
 | **Setup Script** | `./scripts/setup-npm-atlassian-proxy.sh` |
 | **Backend Server** | LXC 111 (192.168.1.20) |
 | **Backend Port** | 9000 |
