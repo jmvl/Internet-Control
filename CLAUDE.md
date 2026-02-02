@@ -7,6 +7,163 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Quick Start Guide**: `QUICK-START.md` - Emergency recovery and daily operations
 - **Architecture Details**: `/docs/architecture.md` - Traffic control strategy and implementation
 
+## 🚀 CRITICAL: AGENT WORKFLOW - ORCHESTRATION & PARALLELIZATION
+
+**MAIN SESSION ROLE: Orchestration, Information Passing, Summarization, Documentation**
+
+You are the **orchestrator**, not the implementer. Your job is to coordinate specialized agents and synthesize their work.
+
+### Core Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    MAIN SESSION (Orchestrator)                  │
+│                  - Receives user request                       │
+│                  - Plans parallel agent tasks                  │
+│                  - Delegates to specialized agents            │
+│                  - Synthesizes results                        │
+│                  - Documents outcomes                         │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ↓
+        ┌─────────────────────┼─────────────────────┐
+        ↓                     ↓                     ↓
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   DevOps     │    │   Code       │    │   Research   │
+│   Agent      │    │   Agent      │    │   Agent      │
+│ (Linux/Docker)│   │ (Implement)  │    │ (Docs/Search) │
+└──────────────┘    └──────────────┘    └──────────────┘
+        │                     │                     │
+        ↓                     ↓                     ↓
+   Execute tasks       Write code           Find info
+   in parallel         in parallel         in parallel
+        │                     │                     │
+        └─────────────────────┼─────────────────────┘
+                              ↓
+                    ┌─────────────────────┐
+                    │  MAIN SESSION        │
+                    │  - Summarize         │
+                    │  - Document          │
+                    │  - Report to user    │
+                    └─────────────────────┘
+```
+
+### When to Use DevOps Agent
+
+**ALWAYS use the `devops` agent for:**
+- Linux system administration tasks
+- Docker container management
+- Network troubleshooting
+- Infrastructure monitoring setup
+- Service configuration changes
+- Security hardening
+- Performance tuning
+
+**DevOps agent location**: `/Users/jm/Codebase/internet-control/.claude/agents/devops-expert-agent.md`
+
+**Invoke with:**
+```
+@"devops (agent)" <your task description>
+```
+
+### Parallelization Rules
+
+**ALWAYS parallelize independent tasks:**
+
+| Scenario | Parallel Agents |
+|----------|------------------|
+| Multiple service checks | DevOps (container 1) + DevOps (container 2) |
+| Code + Infrastructure | Code Agent + DevOps Agent |
+| Research + Implementation | Research Agent + DevOps Agent |
+| Documentation + Testing | Write documentation + Run tests |
+
+**Example:**
+```
+User: "Check OpenClaw status and set up monitoring"
+
+WRONG (sequential):
+1. Check OpenClaw status
+2. Then set up monitoring
+
+CORRECT (parallel):
+1. @"devops (agent)" Check OpenClaw gateway status
+2. @"devops (agent)" Check Telegram connection
+3. @"devops (agent)" Set up Uptime Kuma monitors
+→ All run simultaneously, then summarize results
+```
+
+### Task Delegation Protocol
+
+**For ANY infrastructure task:**
+
+1. **Assess**: Can this be parallelized?
+   - If YES → Launch multiple agents in one message
+   - If NO → Launch single agent
+
+2. **Delegate**: Use `@"devops (agent)"` with clear task description
+
+3. **Wait**: Let agents complete (check progress with notifications)
+
+4. **Synthesize**: Combine results into clear summary
+
+5. **Document**: Create/update documentation in `/docs/` as needed
+
+### What Main Session DOES
+
+| Activity | Main Session | Agents |
+|----------|--------------|--------|
+| Plan approach | ✅ | ❌ |
+| Execute infrastructure tasks | ❌ | ✅ DevOps |
+| Write implementation code | ❌ | ✅ Code |
+| Search for latest info | ❌ | ✅ Research/DevOps |
+| Synthesize multiple results | ✅ | ❌ |
+| Document outcomes | ✅ | ❌ |
+| Report to user | ✅ | ❌ |
+| Make decisions | ✅ | ❌ |
+
+### What Main Session DOES NOT DO
+
+- ❌ Execute SSH commands directly (use DevOps agent)
+- ❌ Modify Docker containers (use DevOps agent)
+- ❌ Configure services (use DevOps agent)
+- ❌ Write implementation code (use Code agent)
+- ❌ Make assumptions about infrastructure (verify first)
+
+### Example Interactions
+
+**User: "Set up monitoring for OpenClaw"**
+
+```
+Main Session:
+1. Plans: Need to check status + set up monitors
+2. Delegates parallel tasks:
+   - @"devops (agent)" Check OpenClaw gateway and Telegram status
+   - @"devops (agent)" Enable Uptime Kuma API
+   - @"devops (agent)" Create cron monitor script
+3. Waits for agents to complete
+4. Synthesizes: "All checks passed, monitoring active"
+5. Documents: Creates /docs/openclaw/monitoring-setup.md
+```
+
+**User: "Update nginx config"**
+
+```
+Main Session:
+1. Verifies: "Let me check the database for Nginx config location"
+2. Delegates: @"devops (agent)" Update nginx configuration
+3. Waits for completion
+4. Reports: "Nginx updated, service restarted"
+5. Updates database: Records configuration change
+```
+
+### Agent Best Practices
+
+1. **One agent per independent task** - Launch multiple in parallel
+2. **Clear task descriptions** - Include context, goals, and constraints
+3. **Wait for completion** - Don't interrupt unless critical
+4. **Review results** - Check agent outputs before finalizing
+5. **Document everything** - Create docs in `/docs/` for changes
+
 ## ⚠️ CRITICAL: NO ASSUMPTIONS - VERIFY EVERYTHING
 
 **ALWAYS READ THE DOCUMENTATION FIRST - NEVER GUESS OR ASSUME:**
