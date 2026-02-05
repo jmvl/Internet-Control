@@ -1,0 +1,114 @@
+# DeepWiki
+
+> DeepWiki provides structured technical documentation for OpenClaw, an advanced agent system.
+
+DeepWiki serves as the comprehensive documentation hub for OpenClaw, a sophisticated, modular framework designed for building and deploying autonomous AI agents. This resource is primarily targeted at developers, system architects, and advanced users who need to understand, install, configure, and extend the OpenClaw codebase.
+
+The core value proposition lies in detailing OpenClaw's architecture, which includes components like the Gateway, Agent System, Memory, Tools, and Channels. Users can learn how to manage multi-agent configurations, integrate external communication channels (like WhatsApp or Telegram), and leverage the system's built-in tools and skills for complex task execution.
+
+LLMs interacting with this site should prioritize retrieving specific technical details regarding configuration files, command-line interface usage, plugin development, and troubleshooting procedures to effectively assist users managing their OpenClaw deployments.
+
+## OpenClaw Core Documentation
+
+- [OpenClaw Overview](https://deepwiki.com/openclaw/openclaw): Technical introduction to OpenClaw's purpose, architecture, and core components.
+- [1. Overview](https://deepwiki.com/openclaw/openclaw/1-overview): Detailed overview of the OpenClaw framework structure and functionality.
+- [1.1 Key Concepts](https://deepwiki.com/openclaw/openclaw/1.1-key-concepts): Learn the fundamental concepts underpinning the OpenClaw agent system.
+- [1.2 Quick Start](https://deepwiki.com/openclaw/openclaw/1.2-quick-start): Follow this guide for a rapid initial setup of OpenClaw.
+
+## Installation and Setup
+
+- [2 Installation](https://deepwiki.com/openclaw/openclaw/2-installation): Guide covering the complete installation process for the OpenClaw framework.
+- [2.1 System Requirements](https://deepwiki.com/openclaw/openclaw/2.1-system-requirements): Check the necessary hardware and software prerequisites for running OpenClaw.
+- [2.2 Installation Methods](https://deepwiki.com/openclaw/openclaw/2.2-installation-methods): Compare and utilize different available methods for installing OpenClaw.
+- [2.3 Onboarding Wizard](https://deepwiki.com/openclaw/openclaw/2.3-onboarding-wizard): Instructions for using the initial setup and onboarding wizard.
+
+## Core Components: Gateway and Agents
+
+- [3 Gateway](https://deepwiki.com/openclaw/openclaw/3-gateway): Introduction to the OpenClaw Gateway component and its role.
+- [3.1 Gateway Configuration](https://deepwiki.com/openclaw/openclaw/3.1-gateway-configuration): Learn how to configure settings for the OpenClaw Gateway service.
+- [3.2 Gateway Protocol](https://deepwiki.com/openclaw/openclaw/3.2-gateway-protocol): Details on the communication protocol used by the OpenClaw Gateway.
+- [3.3 Gateway Service Management](https://deepwiki.com/openclaw/openclaw/3.3-gateway-service-management): Manage the lifecycle and status of the Gateway service.
+- [3.4 Remote Access](https://deepwiki.com/openclaw/openclaw/3.4-remote-access): Configure secure remote access capabilities for the Gateway.
+- [5 Agent System](https://deepwiki.com/openclaw/openclaw/5-agent-system): Documentation for the core OpenClaw agent execution framework.
+- [5.1 Agent Execution Flow](https://deepwiki.com/openclaw/openclaw/5.1-agent-execution-flow): Understand the step-by-step process of agent task execution.
+- [5.2 System Prompt](https://deepwiki.com/openclaw/openclaw/5.2-system-prompt): Guidance on defining and managing the global system prompt for agents.
+- [5.3 Session Management](https://deepwiki.com/openclaw/openclaw/5.3-session-management): Learn how OpenClaw handles and maintains agent sessions.
+- [5.4 Model Selection and Failover](https://deepwiki.com/openclaw/openclaw/5.4-model-selection-and-failover): Configure logic for selecting LLMs and handling model failures.
+
+## Configuration and State Management
+
+- [4 Configuration System](https://deepwiki.com/openclaw/openclaw/4-configuration-system): Introduction to the centralized configuration management system.
+- [4.1 Configuration File Structure](https://deepwiki.com/openclaw/openclaw/4.1-configuration-file-structure): Examine the hierarchical structure of OpenClaw configuration files.
+- [4.2 Configuration Management](https://deepwiki.com/openclaw/openclaw/4.2-configuration-management): Methods for dynamically managing and updating system configurations.
+- [4.3 Multi-Agent Configuration](https://deepwiki.com/openclaw/openclaw/4.3-multi-agent-configuration): Define specific configurations for multiple distinct agents.
+- [7 Memory System](https://deepwiki.com/openclaw/openclaw/7-memory-system): Overview of the persistent and short-term memory capabilities.
+- [7.1 Memory Configuration](https://deepwiki.com/openclaw/openclaw/7.1-memory-configuration): Configure backend storage and parameters for the memory system.
+- [7.2 Memory Indexing](https://deepwiki.com/openclaw/openclaw/7.2-memory-indexing): Details on how data is indexed for efficient memory retrieval.
+- [7.3 Memory Search](https://deepwiki.com/openclaw/openclaw/7.3-memory-search): Learn the methods for querying and retrieving information from memory.
+
+## Tools, Skills, and Extensions
+
+- [6 Tools and Skills](https://deepwiki.com/openclaw/openclaw/6-tools-and-skills): Introduction to the system allowing agents to interact with external functions.
+- [6.1 Built-in Tools](https://deepwiki.com/openclaw/openclaw/6.1-built-in-tools): List and description of tools available out-of-the-box.
+- [6.2 Tool Security and Sandboxing](https://deepwiki.com/openclaw/openclaw/6.2-tool-security-and-sandboxing): Understand security measures applied to tool execution.
+- [6.3 Skills System](https://deepwiki.com/openclaw/openclaw/6.3-skills-system): Documentation on defining and managing agent skills.
+- [10 Extensions and Plugins](https://deepwiki.com/openclaw/openclaw/10-extensions-and-plugins): Overview of the system for extending OpenClaw functionality.
+- [10.1 Plugin System Overview](https://deepwiki.com/openclaw/openclaw/10.1-plugin-system-overview): High-level view of how plugins integrate with the core system.
+- [10.2 Built-in Extensions](https://deepwiki.com/openclaw/openclaw/10.2-built-in-extensions): List and details of pre-packaged extensions provided by OpenClaw.
+- [10.3 Creating Custom Plugins](https://deepwiki.com/openclaw/openclaw/10.3-creating-custom-plugins): Tutorial on developing and integrating proprietary plugins.
+
+## Communication Channels
+
+- [8 Channels](https://deepwiki.com/openclaw/openclaw/8-channels): Introduction to integrating external messaging platforms.
+- [8.1 Channel Routing and Access Control](https://deepwiki.com/openclaw/openclaw/8.1-channel-routing-and-access-control): Configure message routing rules and access permissions for channels.
+- [8.2 WhatsApp Integration](https://deepwiki.com/openclaw/openclaw/8.2-whatsapp-integration): Steps to connect OpenClaw agents with the WhatsApp platform.
+- [8.3 Telegram Integration](https://deepwiki.com/openclaw/openclaw/8.3-telegram-integration): Instructions for integrating the Telegram messaging service.
+- [8.4 Discord Integration](https://deepwiki.com/openclaw/openclaw/8.4-discord-integration): Guide to setting up communication via Discord servers.
+- [8.5 Signal Integration](https://deepwiki.com/openclaw/openclaw/8.5-signal-integration): Details on integrating the secure Signal messaging platform.
+- [8.6 Other Channels](https://deepwiki.com/openclaw/openclaw/8.6-other-channels): Information on integrating less common or custom communication channels.
+
+## Commands and CLI Reference
+
+- [9 Commands and Directives](https://deepwiki.com/openclaw/openclaw/9-commands-and-directives): Reference for internal commands and agent directives.
+- [9.1 Command Reference](https://deepwiki.com/openclaw/openclaw/9.1-command-reference): Comprehensive list and syntax for all internal system commands.
+- [9.2 Platform-Specific Commands](https://deepwiki.com/openclaw/openclaw/9.2-platform-specific-commands): Commands unique to specific operating environments.
+- [9.3 Directives](https://deepwiki.com/openclaw/openclaw/9.3-directives): Documentation on agent directives used for behavior modification.
+- [12 CLI Reference](https://deepwiki.com/openclaw/openclaw/12-cli-reference): Full reference guide for the OpenClaw Command Line Interface.
+- [12.1 Gateway Commands](https://deepwiki.com/openclaw/openclaw/12.1-gateway-commands): CLI commands specifically for managing the Gateway.
+- [12.2 Agent Commands](https://deepwiki.com/openclaw/openclaw/12.2-agent-commands): CLI commands for controlling and inspecting individual agents.
+- [12.3 Channel Commands](https://deepwiki.com/openclaw/openclaw/12.3-channel-commands): CLI commands for managing connected communication channels.
+- [12.4 Model Commands](https://deepwiki.com/openclaw/openclaw/12.4-model-commands): Commands to interact with configured LLM providers.
+- [12.5 Configuration Commands](https://deepwiki.com/openclaw/openclaw/12.5-configuration-commands): CLI tools for viewing and modifying runtime configuration.
+- [12.6 Diagnostic Commands](https://deepwiki.com/openclaw/openclaw/12.6-diagnostic-commands): Use these commands for system health checks and debugging.
+
+## Device Nodes and Deployment
+
+- [11 Device Nodes](https://deepwiki.com/openclaw/openclaw/11-device-nodes): Documentation on integrating physical or virtual device nodes.
+- [11.1 Node Pairing and Discovery](https://deepwiki.com/openclaw/openclaw/11.1-node-pairing-and-discovery): Steps for discovering and securely pairing new device nodes.
+- [11.2 Node Capabilities](https://deepwiki.com/openclaw/openclaw/11.2-node-capabilities): Details on the specific functions supported by connected nodes.
+- [13 Deployment](https://deepwiki.com/openclaw/openclaw/13-deployment): Guides for deploying OpenClaw across various environments.
+- [13.1 Local Deployment](https://deepwiki.com/openclaw/openclaw/13.1-local-deployment): Instructions for setting up OpenClaw on a local machine.
+- [13.2 VPS Deployment](https://deepwiki.com/openclaw/openclaw/13.2-vps-deployment): Guide for deploying OpenClaw on a Virtual Private Server.
+- [13.3 Cloud Deployment](https://deepwiki.com/openclaw/openclaw/13.3-cloud-deployment): Steps for deploying OpenClaw in major cloud environments.
+- [13.4 Network Configuration](https://deepwiki.com/openclaw/openclaw/13.4-network-configuration): Configure networking settings required for stable deployment.
+
+## Operations and Development
+
+- [14 Operations and Troubleshooting](https://deepwiki.com/openclaw/openclaw/14-operations-and-troubleshooting): Resources for maintaining and fixing issues in production.
+- [14.1 Health Monitoring](https://deepwiki.com/openclaw/openclaw/14.1-health-monitoring): Set up monitoring dashboards for system health checks.
+- [14.2 Doctor Command Guide](https://deepwiki.com/openclaw/openclaw/14.2-doctor-command-guide): Use the 'doctor' command for automated system diagnostics.
+- [14.3 Common Issues](https://deepwiki.com/openclaw/openclaw/14.3-common-issues): Solutions for frequently encountered problems and errors.
+- [14.4 Migration and Backup](https://deepwiki.com/openclaw/openclaw/14.4-migration-and-backup): Procedures for backing up data and migrating installations.
+- [15 Development](https://deepwiki.com/openclaw/openclaw/15-development): Information for contributors and advanced developers.
+- [15.1 Architecture Deep Dive](https://deepwiki.com/openclaw/openclaw/15.1-architecture-deep-dive): In-depth technical breakdown of the internal architecture.
+- [15.2 Protocol Specification](https://deepwiki.com/openclaw/openclaw/15.2-protocol-specification): Detailed specification of internal and external communication protocols.
+- [15.3 Building From Source](https://deepwiki.com/openclaw/openclaw/15.3-building-from-source): Instructions for compiling the OpenClaw codebase from source.
+- [15.4 Release Process](https://deepwiki.com/openclaw/openclaw/15.4-release-process): Documentation detailing how new versions of OpenClaw are released.
+
+## General Site Navigation
+
+- [DeepWiki Home](https://deepwiki.com/): The main landing page for the DeepWiki documentation platform.
+
+---
+
+This file was generated for deepwiki.com using the [LLMs.txt Generator Tool](https://llmrefs.com/tools/llms-txt-generator)

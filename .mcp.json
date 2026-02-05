@@ -9,7 +9,7 @@
         "mcp-hetzner"
       ],
       "env": {
-        "HCLOUD_TOKEN": "DmsXjFP5Yl05WfX9AiJGxDszr9tGHKMivBAYWfpOslMzPyS8blYVgHIA8DtgOIRO"
+        "HCLOUD_TOKEN": "${HCLOUD_TOKEN}"
       }
     },
     "context7": {
@@ -28,7 +28,7 @@
         "-y",
         "@brave/brave-search-mcp-server",
         "--brave-api-key",
-        "BSA0_7IO_69-Y2NIs76ibaTSuEZTdLu"
+        "${BRAVE_API_KEY}"
       ],
       "alwaysAllow": [
         "brave_web_search"
