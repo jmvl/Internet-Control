@@ -1,0 +1,13 @@
+# Pi-hole Whitelist Export
+# Export Date: 2026-02-05
+# Source: Docker Pi-hole container
+# Total Domains: 31
+
+api.z.ai
+app.adjust.com
+api2.branch.io
+browser.sentry-cdn.com
+chat.z.ai
+connectivity.samsung.com.cn
+dc.albtls.t.co
+device-metrics-us-2.amazon.com
