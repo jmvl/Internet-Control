@@ -3,9 +3,11 @@
 ## Overview
 
 **Service**: Agent0 AI (agent0ai/agent-zero)
-**Deploy Date**: 2026-01-20 (~16 hours uptime as of 2026-01-20 11:45)
+**Deploy Date**: 2026-01-20
+**Last Updated**: 2026-02-10 (Updated to v0.9.8)
 **Status**: Running
 **Public URL**: https://agentzero.acmea.tech
+**Version**: v0.9.8 (2026-02-10)
 
 ## Service Details
 
@@ -134,4 +136,4 @@ docker-compose up -d agent-zero
 
 ---
 
-*Last Updated: 2026-01-20 11:50 UTC - SSL configured and verified*
+*Last Updated: 2026-02-10 21:50 UTC - Updated to v0.9.8 with Skills, UI Redesign & Git projects*

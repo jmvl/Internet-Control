@@ -1,7 +1,10 @@
 # Agent Zero - Z.ai GLM-4.7 Configuration
 
 **Configuration Date**: 2026-01-27
-**Status**: Backend configured, UI selection required
+**Last Updated**: 2026-02-10
+**Status**: ✅ Fully configured and operational
+**Agent Zero Version**: v0.9.8
+**LiteLLM Version**: 1.81.9
 
 ## Overview
 
@@ -27,13 +30,16 @@ This document describes the configuration of Agent Zero to use Z.ai's (Zhipu AI)
 
 **File**: `/a0/conf/model_providers.yaml` (in container)
 
+**v0.9.8 Configuration** (new):
 ```yaml
 zai:
-  name: Z.ai
-  litellm_provider: zai
+  name: Z.AI
+  litellm_provider: openai
+  kwargs:
+    api_base: https://api.z.ai/api/paas/v4
 ```
 
-**Note**: The provider key is `zai` (for the UI) and `litellm_provider` is also `zai` (LiteLLM's provider name for Zhipu AI).
+**Note**: As of v0.9.8, Agent Zero uses Z.ai's OpenAI-compatible API endpoint (`https://api.z.ai/api/paas/v4`) instead of the native `zai` LiteLLM provider.
 
 ### API Key Configuration
 
@@ -43,9 +49,7 @@ zai:
 ZAI_API_KEY=05f49065dad947f589e85d110f951124.2lLflesMv4Zd9V25
 ```
 
-**Source**: The API key is also stored in `/Users/jm/Codebase/internet-control/.env.local` on the local machine.
-
-**Environment Variable**: `ZAI_API_KEY` (LiteLLM standard for Z.ai/Zhipu AI)
+**Environment Variable**: `ZAI_API_KEY`
 
 ## Available Models
 
@@ -258,19 +262,20 @@ docker exec -it agent-zero sh -c 'echo $ZHIPUAI_API_KEY'
 
 Agent Zero uses LiteLLM for provider abstraction. The mapping is:
 
-| Agent Zero UI | LiteLLM Provider | Environment Variable | Supports Embeddings |
-|---------------|------------------|---------------------|-------------------|
-| `Z.ai` | `zai` | `ZAI_API_KEY` | No |
+| Agent Zero UI | LiteLLM Provider | Environment Variable | API Base | Supports Embeddings |
+|---------------|------------------|---------------------|----------|-------------------|
+| `Z.AI` | `openai` | `ZAI_API_KEY` | `https://api.z.ai/api/paas/v4` | No |
 
 ### Model Name Transformation
 
 When you configure in the UI:
-- **Provider**: `Z.ai`
+- **Provider**: `Z.AI`
 - **Model**: `glm-4.7`
 
-Agent Zero transforms this to LiteLLM call:
-- **Provider**: `zai`
-- **Model**: `zai/glm-4.7`
+Agent Zero transforms this to LiteLLM call (v0.9.8+):
+- **Provider**: `openai`
+- **Model**: `glm-4.7`
+- **API Base**: `https://api.z.ai/api/paas/v4`
 
 This is why you must NOT include the prefix in the UI - it's added automatically based on the provider configuration.
 
@@ -310,4 +315,4 @@ This is why you must NOT include the prefix in the UI - it's added automatically
 
 ---
 
-*Last Updated: 2026-01-27 14:30 UTC - Added LiteLLM version requirement troubleshooting section*
+*Last Updated: 2026-02-10 22:00 UTC - Updated to v0.9.8, Z.ai fully configured and operational*
