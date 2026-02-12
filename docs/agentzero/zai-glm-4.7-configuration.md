@@ -1,8 +1,8 @@
 # Agent Zero - Z.ai GLM-4.7 Configuration
 
 **Configuration Date**: 2026-01-27
-**Last Updated**: 2026-02-10
-**Status**: ✅ Fully configured and operational
+**Last Updated**: 2026-02-11
+**Status**: ✅ Fully configured and operational (Error 1210 fixed)
 **Agent Zero Version**: v0.9.8
 **LiteLLM Version**: 1.81.9
 
@@ -30,26 +30,25 @@ This document describes the configuration of Agent Zero to use Z.ai's (Zhipu AI)
 
 **File**: `/a0/conf/model_providers.yaml` (in container)
 
-**v0.9.8 Configuration** (new):
+**v0.9.8 Configuration** (fixed for Error 1210):
 ```yaml
 zai:
   name: Z.AI
-  litellm_provider: openai
-  kwargs:
-    api_base: https://api.z.ai/api/paas/v4
+  litellm_provider: zai
 ```
 
-**Note**: As of v0.9.8, Agent Zero uses Z.ai's OpenAI-compatible API endpoint (`https://api.z.ai/api/paas/v4`) instead of the native `zai` LiteLLM provider.
+**Note**: The native `zai` LiteLLM provider must be used instead of `openai` to avoid Error 1210 (Invalid API parameter). Using the OpenAI provider causes LiteLLM to send OpenAI-specific parameters that Z.ai's API doesn't support.
 
 ### API Key Configuration
 
-**File**: `/a0/.env` (in container)
+**Location**: Docker Compose environment variable (`/opt/agentzero/docker-compose.yml`)
 
 ```bash
-ZAI_API_KEY=05f49065dad947f589e85d110f951124.2lLflesMv4Zd9V25
+environment:
+  - ZAI_API_KEY=05f49065dad947f589e85d110f951124.2lLflesMv4Zd9V25
 ```
 
-**Environment Variable**: `ZAI_API_KEY`
+**Environment Variable**: `ZAI_API_KEY` (set via docker-compose)
 
 ## Available Models
 
@@ -109,6 +108,29 @@ To verify the configuration is working:
    - No "LLM Provider NOT provided" errors in logs
 
 ## Troubleshooting
+
+### Error: Invalid API parameter (Error Code 1210)
+
+**Full Error**: `litellm.exceptions.BadRequestError: OpenAIException - Invalid API parameter, please check the documentation (Error Code 1210)`
+
+**Cause**: The `model_providers.yaml` is configured with `litellm_provider: openai` instead of `litellm_provider: zai`. This causes LiteLLM to send OpenAI-specific parameters (like `presence_penalty`, `frequency_penalty`, etc.) that Z.ai's API doesn't support.
+
+**Solution** (applied 2026-02-11):
+```yaml
+# Correct configuration in /a0/conf/model_providers.yaml:
+zai:
+  name: Z.AI
+  litellm_provider: zai  # Use native zai provider, not openai
+```
+
+**Verification**:
+```bash
+# Check configuration
+docker exec agent-zero grep -A3 'zai:' /a0/conf/model_providers.yaml
+
+# Verify ZAI_API_KEY is set
+docker exec agent-zero env | grep ZAI_API_KEY
+```
 
 ### Error: "LLM Provider NOT provided" in recall_memories extension
 
@@ -214,6 +236,8 @@ docker exec agent-zero ls -la /opt/venv-a0/lib/python3.12/site-packages/litellm/
 | **Published Port** | 50080 |
 | **Public URL** | https://agentzero.acmea.tech |
 | **Image** | agent0ai/agent-zero:latest |
+| **Config Volume** | `/opt/agentzero/data/conf:/a0/conf` (persists model_providers.yaml) |
+| **Docker Compose** | `/opt/agentzero/docker-compose.yml` |
 
 ## Maintenance
 
@@ -264,7 +288,7 @@ Agent Zero uses LiteLLM for provider abstraction. The mapping is:
 
 | Agent Zero UI | LiteLLM Provider | Environment Variable | API Base | Supports Embeddings |
 |---------------|------------------|---------------------|----------|-------------------|
-| `Z.AI` | `openai` | `ZAI_API_KEY` | `https://api.z.ai/api/paas/v4` | No |
+| `Z.AI` | `zai` | `ZAI_API_KEY` | (auto-configured) | No |
 
 ### Model Name Transformation
 
@@ -273,9 +297,9 @@ When you configure in the UI:
 - **Model**: `glm-4.7`
 
 Agent Zero transforms this to LiteLLM call (v0.9.8+):
-- **Provider**: `openai`
+- **Provider**: `zai` (native provider)
 - **Model**: `glm-4.7`
-- **API Base**: `https://api.z.ai/api/paas/v4`
+- **API Base**: Auto-configured by native provider
 
 This is why you must NOT include the prefix in the UI - it's added automatically based on the provider configuration.
 
@@ -315,4 +339,4 @@ This is why you must NOT include the prefix in the UI - it's added automatically
 
 ---
 
-*Last Updated: 2026-02-10 22:00 UTC - Updated to v0.9.8, Z.ai fully configured and operational*
+*Last Updated: 2026-02-11 16:15 UTC - Fixed Error 1210 by using native zai LiteLLM provider*

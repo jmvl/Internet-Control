@@ -28,9 +28,10 @@ Successfully migrated from the legacy wg-gen-web setup to WireGuard Easy for imp
 ## Access Information
 
 ### Web UI Access
-- **URL**: http://wg.accelior.com:51821 or http://135.181.154.169:51821
+- **Primary User Management**: http://wg.accelior.com:8888/app/#/users (User creation interface)
+- **WireGuard Easy UI**: http://wg.accelior.com:51821 or http://135.181.154.169:51821
 - **Password**: `ChangeThisPassword123!` (CHANGE THIS IMMEDIATELY!)
-- **Port**: 51821 (TCP)
+- **Ports**: 8888 (user management), 51821 (WireGuard Easy UI)
 
 ### WireGuard VPN
 - **Server**: wg.accelior.com:51820 (UDP)
@@ -77,7 +78,7 @@ Access the web UI at http://wg.accelior.com:51821 to get the current server publ
 ### How to Migrate Clients
 
 **Option 1: Web UI (Recommended)**
-1. Log into http://wg.accelior.com:51821
+1. Log into http://wg.accelior.com:8888/app/#/users (primary user management)
 2. Click "New Client" for each device
 3. Name the client (e.g., "iPhone-John", "Laptop-Office")
 4. Download config file or scan QR code
@@ -250,12 +251,24 @@ If you need to roll back to the old setup:
 
 ## Next Steps
 
-1. **Log into web UI**: http://wg.accelior.com:51821
+1. **Log into web UI**: http://wg.accelior.com:8888/app/#/users (primary user creation)
 2. **Change default password** in settings
 3. **Create first test client** to verify functionality
 4. **Plan client migration** - coordinate with users for config updates
 5. **Update Confluence documentation** with new URLs and procedures
 6. **Update local documentation** in repository
+
+## Multiple Management Interfaces
+
+**Current Status**: Multiple WireGuard management interfaces are running:
+
+| Port | URL | Purpose | Status |
+|------|-----|---------|--------|
+| **8888** | http://wg.accelior.com:8888/app/#/users | Primary user creation and management | ✅ Active |
+| **51821** | http://wg.accelior.com:51821 | WireGuard Easy UI with statistics | ✅ Active |
+| **8080** | http://wg.accelior.com:8080 | Legacy wg-gen-web (deprecated) | ⚠️ Legacy |
+
+**Recommendation**: Use port 8888 for all new user creation and management activities.
 
 ---
 

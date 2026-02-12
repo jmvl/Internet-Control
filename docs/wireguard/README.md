@@ -15,7 +15,14 @@ This directory contains comprehensive documentation for the WireGuard VPN server
 
 ## Documentation Files
 
-### 🚀 [wireguard-easy-migration.md](wireguard-easy-migration.md) **← START HERE**
+### 🚀 [QUICKSTART-PORT-8888.md](QUICKSTART-PORT-8888.md) **← START HERE FOR USER MANAGEMENT**
+**Quick start guide for creating VPN users** covering:
+- Primary user management interface (port 8888)
+- Create/remove VPN users
+- View active users
+- Troubleshooting user issues
+
+### 📋 [wireguard-easy-migration.md](wireguard-easy-migration.md) **← MIGRATION & SETUP**
 **Migration guide and current setup** covering:
 - Migration summary (wg-gen-web → WireGuard Easy)
 - New access URLs and credentials
@@ -79,12 +86,17 @@ ssh root@wg.accelior.com 'docker logs wg-easy -f'
 ```
 
 ### Add New Client
-1. Open web UI: http://wg.accelior.com:51821
+1. Open web UI: **http://wg.accelior.com:8888/app/#/users** (Primary user management interface)
 2. Log in with password
 3. Click "New Client" button
 4. Enter client name (e.g., "iPhone-John")
 5. Download config file or scan QR code with mobile app
 6. Done! Client can connect immediately
+
+**Note**: Multiple WireGuard management interfaces are available:
+- **Port 8888**: http://wg.accelior.com:8888/app/#/users (Primary - user creation)
+- **Port 51821**: http://wg.accelior.com:51821 (WireGuard Easy UI)
+- **Port 8080**: http://wg.accelior.com:8080 (Legacy wg-gen-web)
 
 ## Architecture Summary
 
@@ -117,6 +129,12 @@ ssh root@wg.accelior.com 'docker logs wg-easy -f'
 - **Architecture Details**: `/docs/architecture.md`
 
 ## Changelog
+
+### 2026-02-05 - Documentation Update
+- ✅ **Updated all documentation** to reflect port 8888 as primary user management interface
+- ✅ **Added QUICKSTART-PORT-8888.md** for quick user creation reference
+- ✅ **Documented multiple management interfaces** running on ports 8888, 51821, and 8080
+- ✅ **Clarified current access URLs** across all documentation files
 
 ### 2025-10-08 (Evening) - WireGuard Easy Migration
 - ✅ **Migrated to WireGuard Easy** from wg-gen-web
@@ -165,5 +183,5 @@ For legacy setup (if rolled back):
 
 ---
 
-**Documentation Version**: 1.0
-**Last Updated**: 2025-10-08
+**Documentation Version**: 1.1
+**Last Updated**: 2026-02-05

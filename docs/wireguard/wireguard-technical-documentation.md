@@ -4,6 +4,12 @@
 **Location**: Hetzner Helsinki DC (hel1-dc2)
 **Last Updated**: 2025-10-08
 
+> **NOTE**: This document describes the legacy WireGuard setup. For current operations, see:
+> - **README.md**: Current setup with multiple management interfaces
+> - **wireguard-easy-migration.md**: Migration guide and current access URLs
+>
+> **Current User Management**: http://wg.accelior.com:8888/app/#/users
+
 ## Table of Contents
 - [Architecture Overview](#architecture-overview)
 - [Native WireGuard Installation](#native-wireguard-installation)

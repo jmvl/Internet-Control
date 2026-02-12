@@ -5,7 +5,7 @@
 **Proxmox Host**: pve2 (192.168.1.10)
 **IP Address**: 192.168.1.151/24
 **GitHub**: https://github.com/openclaw/openclaw
-**Version**: 2026.1.29
+**Version**: 2026.2.9 (Reinstalled 2026-02-12)
 
 ## Overview
 
@@ -245,6 +245,17 @@ npx openclaw pairing approve telegram <CODE>  # Approve pairing
 
 ## Current Configuration
 
+### Model (Z.ai / Zhipu AI)
+
+```json
+{
+  "primary": "zai/glm-4.7"
+}
+```
+
+**Environment Variables**:
+- `ZAI_API_KEY`: Configured in systemd service and config
+
 ### Gateway
 
 ```json
@@ -349,4 +360,61 @@ Old Moltbot installation backed up at:
 
 ---
 
-*Last Updated: 2026-01-30 - Migrated from Moltbot to OpenClaw*
+*Last Updated: 2026-02-12 - Complete reinstallation with OpenClaw v2026.2.9*
+
+## Troubleshooting
+
+### Bot Not Responding
+
+**CRITICAL: Two-Tier Configuration Requirement**
+
+OpenClaw messaging channels require **BOTH** configurations to be enabled:
+
+1. **Channel Configuration**: `channels.telegram.enabled = true`
+2. **Plugin Configuration**: `plugins.entries.telegram.enabled = true`
+
+If the bot is receiving messages (confirmed via Telegram API) but not responding, check:
+
+```bash
+# Check channel is enabled
+npx openclaw config get channels.telegram.enabled
+
+# Check plugin is enabled (CRITICAL!)
+npx openclaw config get plugins.entries.telegram.enabled
+
+# If plugin is disabled, enable it
+npx openclaw config set plugins.entries.telegram.enabled true
+
+# Restart gateway
+systemctl --user restart openclaw-gateway
+
+# Verify channel appears in list
+npx openclaw channels list
+```
+
+**Common Issue**: After reinstallations or updates, the channel may be enabled but the plugin disabled. See [telegram-bot-not-responding-fix-2026-02-12.md](/docs/openclaw/telegram-bot-not-responding-fix-2026-02-12.md) for detailed troubleshooting.
+
+### Quick Diagnostic Commands
+
+```bash
+# Service status
+systemctl --user status openclaw-gateway
+
+# Channel list (should show Telegram)
+npx openclaw channels list
+
+# Check logs
+journalctl -u openclaw-gateway.service -f
+
+# Verify bot token
+curl -s https://api.telegram.org/bot<TOKEN>/getMe
+
+# Check for pending messages
+curl -s https://api.telegram.org/bot<TOKEN>/getUpdates
+```
+
+## Reinstallation History
+
+- **2026-02-12**: Complete reinstallation due to invalid `runtime` key in configuration. See [reinstall-2026-02-12.md](/docs/openclaw/reinstall-2026-02-12.md) for details.
+- **2026-02-12**: Fixed Telegram bot not responding - plugin was disabled. See [telegram-bot-not-responding-fix-2026-02-12.md](/docs/openclaw/telegram-bot-not-responding-fix-2026-02-12.md).
+- **2026-01-30**: Initial migration from Moltbot to OpenClaw

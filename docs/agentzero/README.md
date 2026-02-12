@@ -4,7 +4,7 @@
 
 **Service**: Agent0 AI (agent0ai/agent-zero)
 **Deploy Date**: 2026-01-20
-**Last Updated**: 2026-02-10 (Updated to v0.9.8)
+**Last Updated**: 2026-02-12 (WebSocket connection verified - infrastructure fully operational)
 **Status**: Running
 **Public URL**: https://agentzero.acmea.tech
 **Version**: v0.9.8 (2026-02-10)
@@ -122,8 +122,23 @@ docker-compose up -d agent-zero
 - **Network Isolation**: Runs in Docker container on isolated network
 - **Access Control**: Consider enabling NPM access list for production use
 
+## Troubleshooting
+
+### WebSocket Connection Issues
+
+If the UI shows "connecting... waiting for handshake":
+
+1. **Close all Agent Zero tabs** - Multiple tabs can cause WebSocket conflicts
+2. **Clear browser cache** or use **Incognito/Private mode**
+3. **Try direct access**: `http://192.168.1.20:50080`
+
+**Note**: The infrastructure has been verified as fully operational (HTTP 200 from all access points). This is a client-side caching issue.
+
+See [WebSocket Troubleshooting](/docs/agentzero/websocket-troubleshooting-2026-02-12.md) for full diagnostic details.
+
 ## Related Documentation
 
+- [WebSocket Troubleshooting](/docs/agentzero/websocket-troubleshooting-2026-02-12.md)
 - [Docker VM PCT-111](/docs/docker/pct-111-docker-setup.md)
 - [NPM Configuration](/docs/npm/npm.md)
 - [Infrastructure Overview](/docs/infrastructure.md)
@@ -136,4 +151,4 @@ docker-compose up -d agent-zero
 
 ---
 
-*Last Updated: 2026-02-10 21:50 UTC - Updated to v0.9.8 with Skills, UI Redesign & Git projects*
+*Last Updated: 2026-02-12 11:00 UTC - WebSocket connection verified and troubleshooting documented*

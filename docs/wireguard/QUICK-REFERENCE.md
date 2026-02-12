@@ -10,14 +10,20 @@ ssh root@wg.accelior.com
 ```
 
 ### Web UI Access
-- **URL**: http://wg.accelior.com:8080
-- **Alternative**: http://135.181.154.169:8080
-- **Auth**: No password required (fake OAuth mode)
+- **Primary (User Creation)**: http://wg.accelior.com:8888/app/#/users
+- **WireGuard Easy UI**: http://wg.accelior.com:51821
+- **Legacy UI**: http://wg.accelior.com:8080
+- **Auth**: Password authentication enabled
 
 ### SSH Tunnel (Secure Access)
 ```bash
-ssh -L 8080:127.0.0.1:8080 root@wg.accelior.com -N
-# Then access: http://localhost:8080
+# For user management (port 8888)
+ssh -L 8888:127.0.0.1:8888 root@wg.accelior.com -N
+# Then access: http://localhost:8888/app/#/users
+
+# For WireGuard Easy UI (port 51821)
+ssh -L 51821:127.0.0.1:51821 root@wg.accelior.com -N
+# Then access: http://localhost:51821
 ```
 
 ---
@@ -90,11 +96,15 @@ cp /etc/wireguard/wg0.conf /root/wg0.conf.backup.$(date +%Y%m%d-%H%M%S)
 ```
 
 ### Add/Remove Peers (via Web UI)
-1. Access web UI: http://wg.accelior.com:8080
+1. Access web UI: **http://wg.accelior.com:8888/app/#/users** (primary)
 2. Click "Add Client" button
 3. Enter client name and email
 4. Download config or scan QR code
 5. Client connects automatically
+
+**Alternative Interfaces**:
+- WireGuard Easy UI: http://wg.accelior.com:51821
+- Legacy UI: http://wg.accelior.com:8080
 
 ### Network Troubleshooting
 ```bash
@@ -235,7 +245,9 @@ hcloud server reboot wg.accelior.com
 | **VPN Network** | 10.6.6.0/24 |
 | **Gateway** | 10.6.6.1 |
 | **WireGuard Port** | 51820/udp |
-| **Web UI Port** | 8080/tcp |
+| **User Management** | 8888/tcp (Primary) |
+| **WireGuard Easy UI** | 51821/tcp |
+| **Legacy UI** | 8080/tcp |
 | **Active Peers** | 13 clients |
 
 ---
@@ -261,4 +273,4 @@ hcloud server reboot wg.accelior.com
 
 ---
 
-**Last Updated**: 2025-10-08
+**Last Updated**: 2026-02-05
