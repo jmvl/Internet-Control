@@ -4,10 +4,10 @@
 
 **Service**: Agent0 AI (agent0ai/agent-zero)
 **Deploy Date**: 2026-01-20
-**Last Updated**: 2026-02-12 (WebSocket connection verified - infrastructure fully operational)
+**Last Updated**: 2026-02-23 (Updated to v0.9.8.1, CSRF token cache issue documented)
 **Status**: Running
 **Public URL**: https://agentzero.acmea.tech
-**Version**: v0.9.8 (2026-02-10)
+**Version**: v0.9.8.1 (2026-02-18)
 
 ## Service Details
 
@@ -16,11 +16,11 @@
 | Property | Value |
 |----------|-------|
 | **Container Name** | `agent-zero` |
-| **Image** | `agent0ai/agent-zero:latest` |
+| **Image** | `agentzero-custom:latest` (custom build with LiteLLM 1.81.11+) |
 | **Base Image** | Kali Linux (kali-rolling) |
 | **Docker Host** | PCT-111 (192.168.1.20) |
 | **Internal Port** | 80 |
-| **Published Port** | 50080 |
+| **Published Port** | 50080, 5173-5174 |
 | **SSH Port** | 22 (internal) |
 | **Additional Ports** | 9000-9009 (internal) |
 | **Status** | Up (healthy) |
@@ -93,6 +93,25 @@ org.opencontainers.image.vendor: OffSec
 org.opencontainers.image.version: 2025.09.21
 ```
 
+## Custom Docker Image
+
+**Why Custom Image?** The official `agent0ai/agent-zero:latest` image ships with LiteLLM version 1.79.3, which lacks the native `zai` provider (added in LiteLLM 1.81.0). The custom image ensures the Z.ai GLM-4.7 provider works correctly.
+
+**Dockerfile**: `/opt/agentzero/Dockerfile` on PCT-111
+```dockerfile
+FROM agent0ai/agent-zero:latest
+RUN /opt/venv-a0/bin/pip install --upgrade 'litellm>=1.81.10'
+RUN ls -la /opt/venv-a0/lib/python3.12/site-packages/litellm/llms/ | grep -i zai
+```
+
+**Rebuild Custom Image** (when upstream updates):
+```bash
+ssh root@192.168.1.20
+cd /opt/agentzero
+docker build -t agentzero-custom:latest .
+docker compose up -d
+```
+
 ## Maintenance
 
 ### View Logs
@@ -136,9 +155,36 @@ If the UI shows "connecting... waiting for handshake":
 
 See [WebSocket Troubleshooting](/docs/agentzero/websocket-troubleshooting-2026-02-12.md) for full diagnostic details.
 
+### "Backend Appears Disconnected" Error
+
+If the UI shows "backend appears to be disconnected" or "Cannot read properties of undefined (reading 'running')":
+
+**Cause**: Stale CSRF token in browser cache after container restart. The `runtime_id` changes on restart, invalidating the cached token.
+
+**Fix**: Clear browser site data for agentzero.acmea.tech:
+1. Open Chrome DevTools (F12) → Application → Storage → Clear site data
+2. Or use Incognito/Private mode
+3. Or hard refresh: `Cmd+Shift+R` (Mac) / `Ctrl+Shift+R` (Windows)
+
+See [CSRF Token Cache Issue](/docs/troubleshooting/2026-02-23-agentzero-csrf-token-cache-issue.md) for full details.
+
+## LLM Configuration
+
+Agent Zero uses a dual-LLM configuration:
+
+| Model | Provider | Model ID | Purpose |
+|-------|----------|----------|---------|
+| **Chat Model** | Z.ai Native API | `glm-4.7` | High-quality conversations |
+| **Utility Model** | OpenRouter | `stepfun/step-3.5-flash:free` | Utility tasks (free tier) |
+| **Embedding Model** | HuggingFace | `sentence-transformers/all-MiniLM-L6-v2` | Text embeddings |
+
+See [OpenRouter Integration](/docs/agentzero/openrouter-integration-2026-02-13.md) for detailed configuration and troubleshooting.
+
 ## Related Documentation
 
+- [OpenRouter Integration](/docs/agentzero/openrouter-integration-2026-02-13.md)
 - [WebSocket Troubleshooting](/docs/agentzero/websocket-troubleshooting-2026-02-12.md)
+- [CSRF Token Cache Issue](/docs/troubleshooting/2026-02-23-agentzero-csrf-token-cache-issue.md)
 - [Docker VM PCT-111](/docs/docker/pct-111-docker-setup.md)
 - [NPM Configuration](/docs/npm/npm.md)
 - [Infrastructure Overview](/docs/infrastructure.md)
@@ -151,4 +197,4 @@ See [WebSocket Troubleshooting](/docs/agentzero/websocket-troubleshooting-2026-0
 
 ---
 
-*Last Updated: 2026-02-12 11:00 UTC - WebSocket connection verified and troubleshooting documented*
+*Last Updated: 2026-02-23 - Updated to v0.9.8.1, CSRF token cache issue documented*
