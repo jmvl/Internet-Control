@@ -4,10 +4,10 @@
 
 **Service**: Agent0 AI (agent0ai/agent-zero)
 **Deploy Date**: 2026-01-20
-**Last Updated**: 2026-02-23 (Updated to v0.9.8.1, CSRF token cache issue documented)
+**Last Updated**: 2026-02-24 (Updated to v0.9.8.2 with LiteLLM 1.81.15)
 **Status**: Running
 **Public URL**: https://agentzero.acmea.tech
-**Version**: v0.9.8.1 (2026-02-18)
+**Version**: v0.9.8.2 (2026-02-24)
 
 ## Service Details
 
@@ -99,8 +99,15 @@ org.opencontainers.image.version: 2025.09.21
 
 **Dockerfile**: `/opt/agentzero/Dockerfile` on PCT-111
 ```dockerfile
-FROM agent0ai/agent-zero:latest
-RUN /opt/venv-a0/bin/pip install --upgrade 'litellm>=1.81.10'
+# Custom Agent Zero image with upgraded LiteLLM
+# v0.9.8.2 - Updated 2026-02-24
+
+FROM agent0ai/agent-zero:v0.9.8.2
+
+# Upgrade LiteLLM to 1.81.11+ to get zai provider support
+RUN /opt/venv-a0/bin/pip install --upgrade "litellm>=1.81.10"
+
+# Verify zai provider exists
 RUN ls -la /opt/venv-a0/lib/python3.12/site-packages/litellm/llms/ | grep -i zai
 ```
 
@@ -168,6 +175,18 @@ If the UI shows "backend appears to be disconnected" or "Cannot read properties 
 
 See [CSRF Token Cache Issue](/docs/troubleshooting/2026-02-23-agentzero-csrf-token-cache-issue.md) for full details.
 
+### Chat Session History Not Visible After Update
+
+If chat sessions disappear from the sidebar after a Docker update:
+
+**Cause**: Same CSRF token cache issue - WebSocket state sync fails, so UI cannot receive session list.
+
+**Important**: **NO DATA LOSS** - all sessions are preserved on the Docker volume at `/mnt/docker/volumes/agent-zero-data/usr/chats/`.
+
+**Fix**: Same as above - clear browser cache or use incognito mode.
+
+See [Session History UI Issue](/docs/troubleshooting/2026-02-25-agentzero-session-history-ui-issue.md) for full investigation details.
+
 ## LLM Configuration
 
 Agent Zero uses a dual-LLM configuration:
@@ -197,4 +216,4 @@ See [OpenRouter Integration](/docs/agentzero/openrouter-integration-2026-02-13.m
 
 ---
 
-*Last Updated: 2026-02-23 - Updated to v0.9.8.1, CSRF token cache issue documented*
+*Last Updated: 2026-02-24 - Updated to v0.9.8.2 with LiteLLM 1.81.15*
